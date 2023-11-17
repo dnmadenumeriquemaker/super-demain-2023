@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script src="p5.js"></script>
+  <script src="p5.web-serial.js"></script>
+  <link
+    rel="stylesheet"
+    type="text/css"
+    href="style.css"
+  >
+  <meta charset="utf-8" />
+
+</head>
+
+<body>
+  <main>
+  </main>
+
+  <audio
+    id="wait_loop"
+    preload="true"
+    src="./assets/wait_loop.mp3"
+    loop
+  ></audio>
+  <audio
+    id="button_pressed"
+    preload="true"
+    src="./assets/button_pressed.mp3"
+  ></audio>
+  <audio
+    id="positive_feedback"
+    preload="true"
+    src="./assets/positive_feedback.mp3"
+  ></audio>
+  <audio
+    id="negative_feedback"
+    preload="true"
+    src="./assets/negative_feedback.mp3"
+  ></audio>
+  <audio
+    id="jauge_bonus"
+    preload="true"
+    src="./assets/jauge_bonus.mp3"
+  ></audio>
+  <audio
+    id="jauge_malus"
+    preload="true"
+    src="./assets/jauge_malus.mp3"
+  ></audio>
+  <audio
+    id="end"
+    preload="true"
+    src="./assets/end.mp3"
+  ></audio>
+  <audio
+    id="end_loop"
+    preload="true"
+    src="./assets/end_loop.mp3"
+    loop
+  ></audio>
+
+  <script src="js/Player.js"></script>
+  <script src="js/Item.js"></script>
+  <script src="js/Asteroid.js"></script>
+  <script src="js/Spaceship.js"></script>
+  <script src="js/Game.js"></script>
+  <script src="js/Step.js"></script>
+</body>
+
+</html>
