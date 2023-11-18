@@ -24,17 +24,20 @@ let port;
 let countdown;
 let timerCountdown = null;
 
+let countdownEnd;
+let timerCountdownEnd = null;
+
 let gameDuration = 0;
 let timerPlay = null;
 
 let jauge;
-let jaugeStep = 3;
+let jaugeStep = 1;
 let jaugeMax = NB_LEDS_JAUGE;
 let jaugeMalus = 5;
-let jaugeBonus = 5;
+let jaugeBonus = 10;
 
 let jaugeSpeed;
-let jaugeSpeedStart = 1000; // la jauge augmente toutes les secondes
+let jaugeSpeedStart = 1500; // la jauge augmente toutes les secondes 1/2
 let jaugeSpeedMax = 500; // la jauge augmente toutes les 1/2 secondes
 let timerJaugeTick = null;
 
@@ -47,7 +50,12 @@ let durationRoundMax = 2 * 1000; // 6 secondes
 
 let currentButtonLetterToPress = null;
 
-let buttons = new Array(24).fill(false);
+let buttons = new Array(24).fill(0);
+let activeButtons = [];
+let prevButtonsStates = new Array(24).fill(0);
+
+let startButton1 = 0;
+let startButton2 = 12;
 
 const dashboards = {
   'A': [0, 1, 2, 3],
@@ -232,18 +240,172 @@ function keyPressed() {
   if (key == "e") {
     setStep(STEP_END);
   }
+
+  if (key == "q") {
+    let dev_startButtonsBeingPressed = new Array(24).fill(0);
+    dev_startButtonsBeingPressed[startButton1] = 1;
+    dev_startButtonsBeingPressed[startButton2] = 1;
+    arduino_gotButtons(dev_startButtonsBeingPressed.join(''));
+  }
+  if (key == "s") {
+    arduino_gotButtons(buttons.join(''));
+  }
+  if (key == "d") {
+    arduino_gotButtons('000001000000000100000000');
+  }
 }
+
+
+
+function arduino_gotButtons(buttonsStatesRaw) {
+  if (step != STEP_PLAY && step != STEP_WAIT) return;
+
+
+  // get pressed buttons
+  let buttonsStates = buttonsStatesRaw.split('');
+
+  let pressedButtons = [];
+
+  buttonsStates
+    .map((state, button) => ({ button, state }))
+    .filter(({ state }) => state == true)
+    .forEach(({ button }) => { pressedButtons.push(button) });
+
+  debug('Boutons pressés : ' + pressedButtons);
+  debug('Boutons actifs : ' + activeButtons);
+
+
+
+  if (step == STEP_PLAY) {
+
+    /*
+     * Check for fake buttons
+     */
+
+    fakeButtons.forEach((fakeButton) => {
+      if (pressedButtons.includes(fakeButton)) {
+        // is pressing fake button!
+        console.log('Mauvais bouton !');
+        setJaugeMalus();
+        playAudio('negative_feedback');
+
+        // store states
+        prevButtonsStates = buttonsStates;
+
+        // Change round
+        endRound();
+      }
+    });
+
+
+
+    /*
+     * Check for active buttons
+     */
+
+    let isPressingActiveButton1 = false;
+    let isPressingActiveButton2 = false;
+
+    // if first button is being pressed
+    if (pressedButtons.includes(activeButtons[0])) {
+      isPressingActiveButton1 = true;
+
+      if (prevButtonsStates[activeButtons[0]] == 0) {
+        // just pressed it
+        playAudio('button_pressed');
+        debug('Button ' + activeButtons[0] + ' has just start being pressed');
+      } else {
+        // was already pressed
+        debug('Button ' + activeButtons[0] + ' is pressed');
+      }
+    }
+
+    // if second button is being pressed
+    if (pressedButtons.includes(activeButtons[1])) {
+      isPressingActiveButton2 = true;
+
+      if (prevButtonsStates[activeButtons[1]] == 0) {
+        // just pressed it
+        playAudio('button_pressed');
+        debug('Button ' + activeButtons[1] + ' has just start being pressed');
+      } else {
+        // was already pressed
+        debug('Button ' + activeButtons[1] + ' is pressed');
+      }
+    }
+
+    // if both buttons are being pressed
+    if (isPressingActiveButton1 && isPressingActiveButton2) {
+      setJaugeBonus();
+      playAudio('positive_feedback');
+      endRound();
+    }
+  }
+
+
+  if (step == STEP_WAIT) {
+    /*
+         * Check for active buttons
+         */
+    console.log('startButtons : '+startButton1+' '+startButton2); 
+    console.log('pressedButtons : '+pressedButtons); 
+
+    let isPressingStartButton1 = false;
+    let isPressingStartButton2 = false;
+
+    // if first button is being pressed
+    if (pressedButtons.includes(startButton1)) {
+      isPressingStartButton1 = true;
+
+      if (prevButtonsStates[startButton1] == 0) {
+        // just pressed it
+        playAudio('button_pressed');
+        debug('Button ' + startButton1 + ' has just start being pressed');
+      } else {
+        // was already pressed
+        debug('Button ' + startButton1 + ' is pressed');
+      }
+    }
+
+    // if second button is being pressed
+    if (pressedButtons.includes(startButton2)) {
+      isPressingStartButton2 = true;
+
+      if (prevButtonsStates[startButton2] == 0) {
+        // just pressed it
+        playAudio('button_pressed');
+        debug('Button ' + startButton2 + ' has just start being pressed');
+      } else {
+        // was already pressed
+        debug('Button ' + startButton2 + ' is pressed');
+      }
+    }
+
+    // if both buttons are being pressed
+    if (isPressingStartButton1 && isPressingStartButton2) {
+      playAudio('positive_feedback');
+      setStep(STEP_COUNTDOWN);
+    }
+  }
+
+  // store states
+  prevButtonsStates = buttonsStates;
+}
+
 
 
 
 
 function setStep(newStep) {
   step = newStep;
+  console.error('Step : ' + step);
 
   if (newStep == STEP_WAIT) {
     initGame();
 
     playAudio('wait_loop');
+  } else {
+    stopAudio('wait_loop');
   }
 
   if (newStep == STEP_COUNTDOWN) {
@@ -257,6 +419,8 @@ function setStep(newStep) {
         setStep(STEP_PLAY);
       }
     }, 1000);
+  } else {
+    clearInterval(timerCountdown);
   }
 
 
@@ -270,6 +434,8 @@ function setStep(newStep) {
     timerJaugeTick = setInterval(function () {
       jauge += jaugeStep;
       checkJauge();
+      console.warn('Jauge : ' + jauge+' (tick)');
+      // TODO: send jauge to Arduino
     }, jaugeSpeed);
 
     // time
@@ -283,6 +449,19 @@ function setStep(newStep) {
 
   if (newStep == STEP_END) {
     endGame();
+
+    countdownEnd = 10;
+
+    clearInterval(timerCountdownEnd);
+    timerCountdownEnd = setInterval(function () {
+      countdownEnd--;
+
+      if (countdownEnd <= 0) {
+        setStep(STEP_WAIT);
+      }
+    }, 1000);
+  } else {
+    clearInterval(timerCountdownEnd);
   }
 }
 
@@ -297,7 +476,11 @@ function initGame() {
 
 function endRound() {
   console.log('Fin du round');
+
+
+
   checkJauge(function () {
+    // if we can play another round
     newRound();
   });
 }
@@ -307,6 +490,7 @@ function newRound() {
   console.log('Nouveau round');
   clearFakeButtons();
   setNewActiveButtons();
+  setNewFakeButtons();
 
   durationRound = 0;
 
@@ -336,7 +520,7 @@ function setNewActiveButtons() {
   let activeButton1 = floor(random(buttons.length));
 
   // éviter que ce soit les mêmes boutons qu'avant
-  while (buttons[activeButton1] === true) {
+  while (buttons[activeButton1] == true) {
     activeButton1 = floor(random(buttons.length));
   }
 
@@ -351,32 +535,81 @@ function setNewActiveButtons() {
   let activeButton2 = potentialButtonsForActiveButton2[floor(random(potentialButtonsForActiveButton2.length))];
 
   // éviter que ce soit les mêmes boutons qu'avant
-  while (buttons[activeButton2] === true) {
+  while (buttons[activeButton2] == true) {
     activeButton2 = potentialButtonsForActiveButton2[floor(random(potentialButtonsForActiveButton2.length))];
   }
 
-  buttons = new Array(24).fill(false);
-  buttons[activeButton1] = true;
-  buttons[activeButton2] = true;
+  buttons = new Array(24).fill(0);
+  buttons[activeButton1] = 1;
+  buttons[activeButton2] = 1;
+
+  activeButtons = [activeButton1, activeButton2];
 
   if (DEBUG) {
     console.warn('Boutons ' + activeButton1 + ' et ' + activeButton2);
+    console.warn('Jauge : ' + jauge);
   }
 }
 
-// players has not triggered the buttons in time
+
+
+function setNewFakeButtons() {
+
+  let fakeButtonsMinMaxCount = getFakeButtonsMinMaxCount();
+
+  let nbFakeButtons = floor(
+    random(
+      fakeButtonsMinMaxCount[0],
+      fakeButtonsMinMaxCount[1] + 1
+    )
+  );
+
+  let potentialFakeButtons = [];
+
+  buttons.forEach((button, index) => {
+    if (button == 0) {
+      potentialFakeButtons.push(index);
+    }
+  });
+
+  for (let i = 0; i < nbFakeButtons; i++) {
+    let fakeButton = potentialFakeButtons[floor(random(potentialFakeButtons.length))];
+
+    // éviter que ce soit les mêmes boutons qu'avant
+    while (fakeButtons.includes(fakeButton)) {
+      fakeButton = potentialFakeButtons[floor(random(potentialFakeButtons.length))];
+    }
+
+    fakeButtons.push(fakeButton);
+  }
+
+  if (DEBUG) {
+    console.warn('Mauvais boutons : ' + fakeButtons);
+  }
+}
+
+
+
+
+
+
+// players has not triggered the buttons simultaneously in time
 function tooLate() {
-  console.log('Pas assez rapides pour ce round !');
+  console.log('Pas assez rapide pour ce round !');
   setJaugeMalus();
+  playAudio('negative_feedback');
   endRound();
 }
 
 function setJaugeMalus() {
+  console.log('malus');
   jauge += jaugeMalus;
+  playAudio('jauge_malus');
 }
 
 function setJaugeBonus() {
   jauge -= jaugeBonus;
+  playAudio('jauge_bonus');
 }
 
 
@@ -401,6 +634,27 @@ function endGame() {
   clearInterval(timerRound);
 }
 
+
+
+function getFakeButtonsMinMaxCount() {
+
+  if (jauge < 27) {
+    return [0, 1];
+  }
+
+  if (jauge < 39) {
+    return [1, 2];
+  }
+
+  if (jauge < 54) {
+    return [2, 4];
+  }
+
+  return [4, 6];
+}
+
+
+
 function playAudio(audio) {
   if (!CAN_AUDIO) return;
 
@@ -421,4 +675,10 @@ function stopAllAudios() {
   audiosList.forEach(audioName => {
     stopAudio(audioName);
   });
+}
+
+function debug(message) {
+  if (!DEBUG) return;
+
+  console.log(message);
 }
