@@ -1,7 +1,7 @@
 
 const DEBUG = true;
 const ENABLE_ARDUINO = false;
-const NB_LEDS_JAUGE = 66;
+const NB_LEDS_JAUGE = 54;
 
 
 let IS_ARDUINO_OK = false;
@@ -11,8 +11,6 @@ const STEP_WAIT = 0;
 const STEP_COUNTDOWN = 1;
 const STEP_PLAY = 2;
 const STEP_END = 3;
-
-const GAME_DURATION = 90;
 
 let step = null;
 
@@ -57,6 +55,8 @@ let prevButtonsStates = new Array(24).fill(0);
 let startButton1 = 0;
 let startButton2 = 12;
 
+const dashboardsLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
 const dashboards = {
   'A': [0, 1, 2, 3],
   'B': [4, 5, 6, 7],
@@ -84,6 +84,13 @@ const oppositeDashboardsOfDashboard = {
   'F': ['B', 'C', 'D'],
 }
 
+const dashboardButtonsPositions = [
+  [-35, 160],
+  [35, 160],
+  [-45, 240],
+  [45, 240],
+];
+
 let audios = {};
 
 const audiosList = [
@@ -96,6 +103,25 @@ const audiosList = [
   'end',
   'end_loop',
 ];
+
+function getFakeButtonsMinMaxCount() {
+
+  if (jauge < 18) {
+    return [0, 1];
+  }
+
+  if (jauge < 30) {
+    return [1, 2];
+  }
+
+  if (jauge < 42) {
+    return [2, 4];
+  }
+
+  return [4, 6];
+}
+
+
 
 function preload() {
   // font = loadFont('./assets/Dela.ttf');
@@ -173,10 +199,10 @@ function draw() {
       // changes button label based on connection status
       if (!port.opened()) {
         IS_ARDUINO_OK = false;
-        console.log('Waiting for Arduino');
+        debug('Waiting for Arduino', 'orange');
       } else {
         IS_ARDUINO_OK = true;
-        console.log('Connected');
+        debug('Connected', 'green');
       }
     }
 
@@ -219,13 +245,82 @@ function draw() {
   }
 
   if (step == STEP_PLAY) {
+    dashboardsLetters.forEach((dashboardLetter, index) => {
+      push();
+      translate(width / 2, height / 2);
+      rotate(radians(index * 60));
 
+      fill('#1a172e');
+      triangle(175, 300, -175, 300, 0, 0);
+
+      dashboards[dashboardLetter].forEach((button, index) => {
+        push();
+        translate(
+          dashboardButtonsPositions[index][0],
+          dashboardButtonsPositions[index][1]
+        );
+
+        // is active button
+        if (buttons[button] == 1) {
+          fill('#00FF00');
+          noStroke();
+        }
+
+        // is fake button
+        else if (fakeButtons.includes(button)) {
+          fill('#FF0000');
+          noStroke();
+        }
+
+        // is button
+        else {
+          noFill();
+          stroke('#433E77');
+          strokeWeight(3);
+        }
+        ellipse(0, 0, 30, 30);
+
+        noStroke();
+        fill('#ffffff');
+        textAlign(CENTER);
+        textSize(20);
+        text(button, 0, 40);
+        pop();
+      });
+
+      pop();
+    });
+
+    push();
+    translate(width / 2 - 25 - 450, height / 2 - 270);
+    rectMode(CORNER);
+
+    noStroke();
+    fill('#433E77');
+    rect(0, 0, 20, 550);
+
+    for (let i = 0; i < 54; i++) {
+      if (i < jauge) {
+        fill('#FFFFFF');
+      } else {
+        fill('#433E77');
+      }
+      
+      ellipse(10, 540 - i * 10, 8, 8);
+    }
+    // fill('#FFFFFF');
+    // rect(0, 540 - jauge * 10, 50, jauge * 10);
+
+    pop();
   }
 
   if (step == STEP_END) {
 
   }
 }
+
+
+
 
 function keyPressed() {
   if (key == "w") {
@@ -254,6 +349,8 @@ function keyPressed() {
     arduino_gotButtons('000001000000000100000000');
   }
 }
+
+
 
 
 
@@ -347,8 +444,8 @@ function arduino_gotButtons(buttonsStatesRaw) {
     /*
          * Check for active buttons
          */
-    console.log('startButtons : '+startButton1+' '+startButton2); 
-    console.log('pressedButtons : '+pressedButtons); 
+    console.log('startButtons : ' + startButton1 + ' ' + startButton2);
+    console.log('pressedButtons : ' + pressedButtons);
 
     let isPressingStartButton1 = false;
     let isPressingStartButton2 = false;
@@ -396,6 +493,10 @@ function arduino_gotButtons(buttonsStatesRaw) {
 
 
 
+
+
+
+
 function setStep(newStep) {
   step = newStep;
   console.error('Step : ' + step);
@@ -434,7 +535,7 @@ function setStep(newStep) {
     timerJaugeTick = setInterval(function () {
       jauge += jaugeStep;
       checkJauge();
-      console.warn('Jauge : ' + jauge+' (tick)');
+      console.warn('Jauge : ' + jauge + ' (tick)');
       // TODO: send jauge to Arduino
     }, jaugeSpeed);
 
@@ -474,16 +575,6 @@ function initGame() {
 
 
 
-function endRound() {
-  console.log('Fin du round');
-
-
-
-  checkJauge(function () {
-    // if we can play another round
-    newRound();
-  });
-}
 
 
 function newRound() {
@@ -505,6 +596,16 @@ function newRound() {
       tooLate();
     }
   }, intervalTickRound);
+}
+
+
+function endRound() {
+  console.log('Fin du round');
+
+  checkJauge(function () {
+    // if we can play another round
+    newRound();
+  });
 }
 
 
@@ -636,25 +737,6 @@ function endGame() {
 
 
 
-function getFakeButtonsMinMaxCount() {
-
-  if (jauge < 27) {
-    return [0, 1];
-  }
-
-  if (jauge < 39) {
-    return [1, 2];
-  }
-
-  if (jauge < 54) {
-    return [2, 4];
-  }
-
-  return [4, 6];
-}
-
-
-
 function playAudio(audio) {
   if (!CAN_AUDIO) return;
 
@@ -677,8 +759,20 @@ function stopAllAudios() {
   });
 }
 
-function debug(message) {
+function debug(message, style = null) {
   if (!DEBUG) return;
 
-  console.log(message);
+  if (style) {
+    const colors = {
+      'green': 'color: green',
+      'blue': 'color: blue',
+      'orange': 'color: orange',
+      'red': 'color: red',
+      'info': 'color: yellow',
+    };
+
+    console.log('%c' + message, colors[style]);
+  } else {
+    console.log(message);
+  }
 }
