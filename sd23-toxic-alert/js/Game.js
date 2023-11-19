@@ -100,6 +100,8 @@ const audiosList = [
   'negative_feedback',
   'jauge_bonus',
   'jauge_malus',
+  'tick',
+  'alarm',
   'end',
   'end_loop',
 ];
@@ -268,7 +270,9 @@ function draw() {
 
         // is fake button
         else if (fakeButtons.includes(button)) {
-          fill('#FF0000');
+          if (frameCount % 30 < 15) {
+            fill('#FF0000');
+          }
           noStroke();
         }
 
@@ -301,12 +305,27 @@ function draw() {
 
     for (let i = 0; i < 54; i++) {
       if (i < jauge) {
-        fill('#FFFFFF');
+        if (i < 18) {
+          fill('#FFFFFF');
+        } else if (i < 30) {
+          fill('#FFFF00');
+        } else if (i < 42) {
+          fill('#FF6600');
+        } else {
+          fill('#FF0000');
+        }
       } else {
         fill('#433E77');
       }
-      
+
       ellipse(10, 540 - i * 10, 8, 8);
+    }
+
+    if (jauge >= 42) {
+      if (frameCount % 30 < 15) {
+        fill('#FF0000');
+      }
+      rect(0, -50, 20, 50);
     }
     // fill('#FFFFFF');
     // rect(0, 540 - jauge * 10, 50, jauge * 10);
@@ -534,6 +553,9 @@ function setStep(newStep) {
     clearInterval(timerJaugeTick);
     timerJaugeTick = setInterval(function () {
       jauge += jaugeStep;
+
+      playAudio('tick');
+
       checkJauge();
       console.warn('Jauge : ' + jauge + ' (tick)');
       // TODO: send jauge to Arduino
@@ -724,6 +746,11 @@ function checkJauge(cb = function () { }) {
     console.log('La jauge a explosée !');
     setStep(STEP_END);
   } else {
+    if (jauge >= 30) {
+      playAudio('alarm');
+    } else {
+      stopAudio('alarm');
+    }
     cb();
   }
 }
@@ -733,6 +760,8 @@ function endGame() {
   clearInterval(timerJaugeTick);
   clearInterval(timerPlay);
   clearInterval(timerRound);
+  stopAudio('alarm');
+  playAudio('end');
 }
 
 
