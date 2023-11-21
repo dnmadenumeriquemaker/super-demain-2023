@@ -7,7 +7,7 @@ let IS_ARDUINO_OK = false;
 
 let screen = null;
 
-viseurSizeXY = 20
+let viseurSizeXY = 20
 
 let scoreDif = 0.1
 let difficulty = 1;
@@ -23,30 +23,63 @@ let squareSize = 50;
 let squareAngle = 0;
 let distCrosshair = 0;
 let ax, ay, bx, by, cx, cy;
-let mx;
-let my;
+let viseurX;
+let viseurY;
 let scoreX;
 let scoreY;
 let mouseClickX;
 let mouseClickY;
 
-let redCircles = [];
-let lastRedCircleTime = 0;
-let redCircleInterval = 1000; // Intervalle d'apparition des cercles rouges
+let viseurImage;
+let viseurs = {};
 
-let whiteCircles = [];
-let lastWhiteCircleTime = 10000;
-let whiteCircleInterval = 13000; // Intervalle d'apparition des cercles blancs
+let bullets = [];
+let lastBulletTime = 0;
+let timeBetweenTwoBullets = 1000; // Temps entre deux boulets de canon
 
-let yellowCircles = [];
-let lastYellowCircleTime = 18000;
-let yellowCircleInterval = 13000; // Intervalle d'apparition des cercles jaune
+let enemies = [];
+let lastEnemyGeneratedTime = 0;
+let timeBetweenTwoEnemies = 15000; // Temps entre deux ennemis
 
-let blueCircles = [];
-let lastBlueCircleTime = 24000;
-let blueCircleInterval = 13000; // Intervalle d'apparition des cercles bleus
+let enemyLifespan = 20000; // Durée de vie des ennemis
 
-let Bullettype = [1, 2, 3];
+let enemiesConfig = {
+  green: {
+    yStart: 260,
+    yEnd: 150,
+
+    sizeStart: 5,
+    sizeEnd: 200,
+  },
+  red: {
+    yStart: 290,
+    yEnd: 310,
+
+    sizeStart: 2,
+    sizeEnd: 200,
+  },
+  yellow: {
+    yStart: 415,
+    yEnd: 580,
+
+    sizeStart: 5,
+    sizeEnd: 300,
+  }
+}
+
+let greenEnemies = [];
+let lastgreenEnemyTime = 10000;
+let greenEnemyInterval = 13000; // Intervalle d'apparition des cercles blancs
+
+let redEnemies = [];
+let lastredEnemyTime = 18000;
+let redEnemyInterval = 13000; // Intervalle d'apparition des cercles jaune
+
+let yellowEnemies = [];
+let lastyellowEnemyTime = 24000;
+let yellowEnemyInterval = 13000; // Intervalle d'apparition des cercles bleus
+
+let bulletType = [1, 2, 3];
 let bulletSize;
 let clr = 0
 
@@ -76,7 +109,7 @@ const audiosList = [
   'musique',
 ];
 
-let players = ['green', 'red', 'yellow'];
+let colors = ['green', 'red', 'yellow'];
 
 let controllers = {
   red: {
@@ -130,16 +163,22 @@ function preload() {
   txtInstructions = loadImage("mechano.png")
   feedbackButtonOK = loadImage("mechano.png")
   txt2 = loadImage("fond.png")
-  viseurB = loadImage("viseur_blanc.png")
-  viseurV = loadImage("viseur_vert.png")
-  viseurJ = loadImage("viseur_jaune.png")
-  viseurR = loadImage("viseur_rouge.png")
+
+  viseurNeutral = loadImage("viseur_blanc.png")
+  viseurs.green = loadImage("viseur_vert.png")
+  viseurs.red = loadImage("viseur_rouge.png")
+  viseurs.yellow = loadImage("viseur_jaune.png")
+
   boulet = loadImage("boulet_de_canon.png")
 
   // Préparation des sprites des ennemis
   spritesAvion = [avL, avM, avS];
   spritesBateau = [btL, btM, btS];
   spritesSousMarin = [smL, smM, smS];
+
+  enemiesConfig.green.sprites = [avL, avM, avS];
+  enemiesConfig.red.sprites = [btL, btM, btS];
+  enemiesConfig.yellow.sprites = [smL, smM, smS];
 
   // Chargement de tous les sons
   audiosList.forEach(audioName => {
@@ -156,8 +195,8 @@ function setup() {
 
   // Canon et viseur
   squareX = width / 2;
-  ax = bx = cx = mx = width / 2;
-  ay = by = cy = my = height / 2;
+  ax = bx = cx = viseurX = width / 2;
+  ay = by = cy = viseurY = height / 2;
 
   // Coordonnées du score
   scoreX = 30;
@@ -168,6 +207,8 @@ function setup() {
   avionSpawn = height / 2.55
   ligneEau = height / 1.77
   sousmarin = height / 1.3
+
+
 
   if (ENABLE_ARDUINO) {
     port = createSerial();
@@ -204,6 +245,7 @@ function draw() {
     controllers['yellow'].joystick.down = keyIsDown(83);
     controllers['yellow'].joystick.left = keyIsDown(81);
   }
+
 
   if (screen == null) {
     push();
@@ -393,6 +435,8 @@ function draw() {
 
   else if (screen == 2) {
 
+    viseurImage = viseurNeutral;
+
     // Démarrer la musique
     playAudio('musique');
 
@@ -404,6 +448,7 @@ function draw() {
     }
 
 
+    /*
     if (millis() < 12000) {
       push()
       fill(255);
@@ -432,18 +477,15 @@ function draw() {
       text("joueur jaune, tirez sur les enemies de la zone jaune !", width / 2, height / 1.25)
 
       pop()
-
-
-
-
     }
+    */
 
 
 
 
 
 
-    text(Bullettype, 10, 70);
+    text(bulletType, 10, 70);
 
     if (score < 40) {
       difficulty = 0.1
@@ -454,7 +496,8 @@ function draw() {
     // text(difficulty, 50, 50);
 
 
-    //affichage des scores
+    // Affichage du score
+    // TODO: à améliorer
     push();
     fill(135, 205, 255);
     textAlign(LEFT);
@@ -467,72 +510,24 @@ function draw() {
 
 
 
-    push()
     noFill()
-    distCrosshair = dist(mx, my, width / 2, height);
+    distCrosshair = dist(viseurX, viseurY, width / 2, height);
 
-    bulletSize = map(my, 0, 400, 40, 20);
-
-
-
-    ////COMMANDES////
+    bulletSize = map(viseurY, 0, 400, 40, 20);
 
 
-    if (playerUpIsTriggered('green')) {
-      ay -= 4;
-    }
-    if (playerRightIsTriggered('green')) {
-      ax += 4;
-    }
-    if (playerDownIsTriggered('green')) {
-      ay += 4;
-    }
-    if (playerLeftIsTriggered('green')) {
-      ax -= 4;
-    }
-
-    if (playerUpIsTriggered('red')) {
-      by -= 4;
-    }
-    if (playerRightIsTriggered('red')) {
-      bx += 4;
-    }
-    if (playerDownIsTriggered('red')) {
-      by += 4;
-    }
-    if (playerLeftIsTriggered('red')) {
-      bx -= 4;
-    }
-
-    if (playerUpIsTriggered('yellow')) {
-      cy -= 4;
-    }
-    if (playerRightIsTriggered('yellow')) {
-      cx += 4;
-    }
-    if (playerDownIsTriggered('yellow')) {
-      cy += 4;
-    }
-    if (playerLeftIsTriggered('yellow')) {
-      cx -= 4;
-    }
-
-    my = constrain(my, 0, height);
-    mx = constrain(mx, 0, width);
-    my = (ay + by + cy) / 3; //moyenne des mouvement des 3 commandes
-    mx = (ax + bx + cx) / 3;
-    image(viseurB, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-    ax = bx = cx = constrain(mx, 0, width);
-    ay = by = cy = constrain(my, 0, height);
+    updateViseur();
 
 
 
 
 
 
-    //CANON
+
+    /*
+    // CANON
     // Carré orienté vers la souris
-    let angle = atan2(my - height, mx - squareX);
+    let angle = atan2(viseurY - height, viseurX - squareX);
     squareAngle = angle; // Met à jour l'angle du carré
 
     push();
@@ -542,112 +537,153 @@ function draw() {
     rectMode(CENTER);
     //rect(0, 0, squareSize, squareSize);
     pop();
+    */
 
 
 
 
 
-    //PROJECTILE
-    // Lancer un cercle rouge à intervalle régulier
 
+    // TODO: FAIRE EN SORTE QUE LE BOULET DE CANON APPARAISSE EN GROS SUR L'ECRAN PUIS DIMINUE EN TAILLE
 
-    //FAIRE EN SORTE QUE LE BOULET DE CANON APPARAISSE EN GROS SUR L'ECRAN PUIS DIMINUE EN TAILLE
+    // Tir de boulet de canon !
 
-    if (keyIsDown("32") && millis() - lastRedCircleTime >= redCircleInterval) {
-      mouseClickX = mx;
-      mouseClickY = my;
-      Bullettype = 1; //type 1 =contre les ennemies en l'air
-      let redCircle = {
-        x: squareX,
-        y: height,
-        size: bulletSize,
-        angle: -squareAngle,
-      };
-      redCircles.push(redCircle);
+    if (playerButtonIsPressed('green')
+      || playerButtonIsPressed('red')
+      || playerButtonIsPressed('yellow')) {
 
-      //a remplacer par image boulet de canon
+      if (playerButtonIsPressed('green')) {
+        bulletType = 1; //type 1 = contre les ennemis en l'air
+      }
 
-      lastRedCircleTime = millis();
-      //jouer le son "tir" a ce moment la
-      playAudio('tir');
+      if (playerButtonIsPressed('red')) {
+        bulletType = 2; //type 1 = contre les ennemis sur l'eau
+      }
 
-    }
+      if (playerButtonIsPressed('yellow')) {
+        bulletType = 3; //type 1 = contre les ennemis sous l'eau
+      }
 
-    //FAIRE EN SORTE QUE LE BOULET DE CANON APPARAISSE EN GROS SUR L'ECRAN PUIS DIMINUE EN TAILLE
+      // S'il y a assez de temps entre le précédent tir et ce tir
+      if (millis() - lastBulletTime >= timeBetweenTwoBullets) {
+        mouseClickX = viseurX;
+        mouseClickY = viseurY;
 
-    if (keyIsDown("86") && millis() - lastRedCircleTime >= redCircleInterval) {
-      mouseClickX = mx;
-      mouseClickY = my;
-      Bullettype = 2; //type 2 =contre les ennemies sur l'eau
-      let redCircle = {
-        x: squareX,
-        y: height,
-        size: bulletSize,
-        angle: -squareAngle,
-      };
-      redCircles.push(redCircle);
-      lastRedCircleTime = millis();
-      //jouer le son "tir" a ce moment la
-      playAudio('tir');
-    }
+        // On crée le boulet de canon
+        let bullet = {
+          x: squareX,
+          y: height,
+          size: bulletSize,
+          angle: -squareAngle,
+        };
 
-    //FAIRE EN SORTE QUE LE BOULET DE CANON APPARAISSE EN GROS SUR L'ECRAN PUIS DIMINUE EN TAILLE
+        // On l'ajoute aux boulets de canon
+        bullets.push(bullet);
 
-    if (keyIsDown("66") && millis() - lastRedCircleTime >= redCircleInterval) {
-      mouseClickX = mx;
-      mouseClickY = my;
-      Bullettype = 3; //type 3 =  contre les ennemies sous l'eau
-      let redCircle = {
-        x: squareX,
-        y: height,
-        size: bulletSize,
-        angle: -squareAngle,
-      };
-      redCircles.push(redCircle);
-      lastRedCircleTime = millis();
-      //jouer le son "tir" a ce moment la
-
-      playAudio('tir');
+        playAudio('tir');
+      }
     }
 
 
-    // Affichage des cercles rouges lancés
-    for (let i = redCircles.length - 1; i >= 0; i--) {
-      let redCircle = redCircles[i];
-      redCircle.y -= 7 * sin(redCircle.angle);
-      redCircle.x += 7 * cos(redCircle.angle);
-      //redCircle.y -= log(redCircle.size) * 0.5; // Ralentissement de la vitesse
-      redCircle.size = bulletSize; //log(redCircle.size)*0.12 ; // Ralentissement du grossissement
-
-      fill(255, 0, 0);
-      ellipse(redCircle.x, redCircle.y, redCircle.size, redCircle.size);
-
-      // taille de la hitbox viseur
-      if (
-        redCircle.x < mouseClickX + 11 && redCircle.x > mouseClickX - 11 && redCircle.y < mouseClickY + 11 && redCircle.y > mouseClickY - 11
-      ) {
-        redCircles.splice(i, 1);
-        // enlève les cercles rouges qui sortent du canvas
-      } else if (
-        redCircle.y < 0 || redCircle.x < 0 || redCircle.x > width || redCircle.y > height) {
-        redCircles.splice(i, 1);
 
 
 
+    // Générer un ennemi régulièrement
 
-        //COLLISION//
+    if (millis() - lastEnemyGeneratedTime >= timeBetweenTwoEnemies) {
+      newEnemy();
+
+      lastEnemyGeneratedTime = millis();
+    }
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      let enemy = enemies[i];
+      let enemyConfig = enemiesConfig[enemy.type];
+
+      let elapsedTime = millis() - enemy.startTime;
+
+      // Si l'animation est en cours (durée non dépassée)
+      if (elapsedTime < enemy.lifespan) {
+        // Calcul de la progression en utilisant une fonction d'interpolation
+        // let progression = perspectiveAcceleration(map(elapsedTime, 0, enemy.lifespan, 0, 1));
+        let progression = map(elapsedTime, 0, enemy.lifespan, 0, 1);
+
+        enemy.y = lerp(enemyConfig.yStart, enemyConfig.yEnd, progression);
+        enemy.size = lerp(enemyConfig.sizeStart, enemyConfig.sizeEnd, progression);
+
+        image(enemy.sprite, enemy.x, enemy.y, enemy.size, enemy.size);
+
+        if (DEBUG) {
+          fill(255, 255, 0, 120);
+          stroke(0);
+          ellipse(enemy.x, enemy.y, enemy.size, enemy.size);
+        }
+
       } else {
-        // Vérification de collision entre cercles rouges et blancs (air)
-        for (let j = whiteCircles.length - 1; j >= 0; j--) {
-          let whiteCircle = whiteCircles[j];
-          let d = dist(redCircle.x, redCircle.y, whiteCircle.x, whiteCircle.y);
+        // Partie perdue
+        enemies.splice(i, 1);
+        //setScreen(3);
+      }
+
+      if (dist(viseurX, viseurY, enemy.x, enemy.y) < viseurSizeXY / 2 + enemy.size / 2) {
+        console.log("yes")
+
+        viseurImage = viseurs[enemy.type];
+      }
+    }
+
+    console.log(bullets);
+
+    // Affichage des boulets de canon lancés
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      let bullet = bullets[i];
+
+      bullet.x += 7 * cos(bullet.angle);
+      bullet.y -= 7 * sin(bullet.angle);
+      bullet.size = bulletSize; //log(bullet.size)*0.12 ; // Ralentissement du grossissement
+
+      bullet.y -= log(bullet.size) * 0.5; // Ralentissement de la vitesse
+
+      fill(255, 0, 255);
+      ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
+
+      // Si le boulet de canon arrive en bout de trajet
+      // et n'a rencontré aucun ennemi, on le supprime
+      // TODO: vérifier mouseClickX et mouseClickY 
+      if (
+        bullet.x < mouseClickX + 11
+        && bullet.x > mouseClickX - 11
+        && bullet.y < mouseClickY + 11
+        && bullet.y > mouseClickY - 11
+      ) {
+        bullets.splice(i, 1);
+        continue;
+      }
+
+
+      // Si le boulet de canon est hors-champ,
+      // on le supprime
+      else if (
+        bullet.y < 0
+        || bullet.x < 0
+        || bullet.x > width
+        || bullet.y > height) {
+        bullets.splice(i, 1);
+      }
+
+
+      else {
+        // On vérifie les collisions entre les boulets de canon et les avions (air)
+        for (let j = greenEnemies.length - 1; j >= 0; j--) {
+          let greenEnemy = greenEnemies[j];
+          let d = dist(bullet.x, bullet.y, greenEnemy.x, greenEnemy.y);
           if (
-            d < redCircle.size / 2 + whiteCircle.size / 2 &&
-            mouseClickY + whiteCircle.size / 2 > whiteCircle.y &&
-            Bullettype == 1
+            d < bullet.size / 2 + greenEnemy.size / 2 &&
+            mouseClickY + greenEnemy.size / 2 > greenEnemy.y &&
+            bulletType == 1
           ) {
-            redCircles.splice(i, 1);
-            whiteCircles.splice(j, 1);
+            bullets.splice(i, 1);
+            greenEnemies.splice(j, 1);
 
             score = score + 1;
             if (score > 40) {
@@ -661,16 +697,16 @@ function draw() {
 
 
       // Vérification de collision entre cercles rouges et jaunes (eau)
-      for (let k = yellowCircles.length - 1; k >= 0; k--) {
-        let yellowCircle = yellowCircles[k];
-        let d = dist(redCircle.x, redCircle.y, yellowCircle.x, yellowCircle.y);
+      for (let k = redEnemies.length - 1; k >= 0; k--) {
+        let redEnemy = redEnemies[k];
+        let d = dist(bullet.x, bullet.y, redEnemy.x, redEnemy.y);
         if (
-          d < redCircle.size / 2 + yellowCircle.size / 2 &&
-          mouseClickY + yellowCircle.size / 2 > yellowCircle.y &&
-          Bullettype == 2
+          d < bullet.size / 2 + redEnemy.size / 2 &&
+          mouseClickY + redEnemy.size / 2 > redEnemy.y &&
+          bulletType == 2
         ) {
-          redCircles.splice(i, 1);
-          yellowCircles.splice(k, 1);
+          bullets.splice(i, 1);
+          redEnemies.splice(k, 1);
           score = score + 1;
           if (score > 40) {
             scoreDif = scoreDif + 0.1
@@ -682,16 +718,16 @@ function draw() {
 
 
       // Vérification de collision entre cercles rouges et bleus (sous l'eau)
-      for (let l = blueCircles.length - 1; l >= 0; l--) {
-        let blueCircle = blueCircles[l];
-        let d = dist(redCircle.x, redCircle.y, blueCircle.x, blueCircle.y);
+      for (let l = yellowEnemies.length - 1; l >= 0; l--) {
+        let yellowEnemy = yellowEnemies[l];
+        let d = dist(bullet.x, bullet.y, yellowEnemy.x, yellowEnemy.y);
         if (
-          d < redCircle.size / 2 + blueCircle.size / 2 &&
-          mouseClickY + blueCircle.size / 2 > blueCircle.y &&
-          Bullettype == 3
+          d < bullet.size / 2 + yellowEnemy.size / 2 &&
+          mouseClickY + yellowEnemy.size / 2 > yellowEnemy.y &&
+          bulletType == 3
         ) {
-          redCircles.splice(i, 1);
-          blueCircles.splice(l, 1);
+          bullets.splice(i, 1);
+          yellowEnemies.splice(l, 1);
           score = score + 1;
           if (score > 40) {
             scoreDif = scoreDif + 0.1
@@ -702,182 +738,11 @@ function draw() {
       }
     }
 
-
-
-
-
-
-    //GENERATION ennemies//
-
-
-
-
-
-    //cercle blanc à intervalle régulier
-
-    if (millis() - lastWhiteCircleTime >= whiteCircleInterval - difficulty * 1000) {
-      let circle = {
-        x: random(50, width - 50), // Position aléatoire sur l'axe horizontal
-        y: avionSpawn, // hauteur de spawn
-        size: 5,
-        sprite: spritesAvion[int(random(0, 3))],
-      };
-      whiteCircles.push(circle);
-      lastWhiteCircleTime = millis();
-
-
-      // modificateur de vitesse
-      vrbw = random(type)
-      if (vrbw == 1) {
-        Vwhite = 1.1
-      } else if (vrbw == 2) {
-        Vwhite = 1
-      } else if (vrbw == 3) {
-        Vwhite = 0.9
-      }
-
-    }
-
-    for (let i = whiteCircles.length - 1; i >= 0; i--) {
-      let whiteCircle = whiteCircles[i];
-
-      whiteCircle.y -= log(whiteCircle.size) * 0.2 * Vwhite * difficulty; // ralentissement de la vitesse
-
-      whiteCircle.size += log(whiteCircle.size) * 0.1 * Vwhite * difficulty; // ralentissement du grossissement
-
-      fill(255, 255, 255, 120);
-      stroke(0);
-      image(whiteCircle.sprite, whiteCircle.x, whiteCircle.y, whiteCircle.size, whiteCircle.size);
-      ellipse(whiteCircle.x, whiteCircle.y, whiteCircle.size, whiteCircle.size);
-
-      if (dist(mx, my, whiteCircle.x, whiteCircle.y) < viseurSizeXY / 2 + whiteCircle.size / 2) {
-        console.log("yes")
-
-
-        image(viseurV, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      } else {
-        image(viseurB, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      }
-
-      if (whiteCircle.y < 0) {
-        whiteCircles.splice(i, 1);
-        setScreen(3);
-      }
-    }
-
-
-
-
-    // Générer un cercle jaunes à intervalle régulier
-    if (
-      millis() - lastYellowCircleTime >=
-      yellowCircleInterval - difficulty * 1000
-    ) {
-      let circle = {
-        x: random(50, width - 50), // Position aléatoire sur l'axe horizontal
-        y: horizon, // Position sur la troisième ligne à 100 pixels de hauteur
-        size: 5,
-        sprite: spritesBateau[int(random(0, 3))],
-      };
-      yellowCircles.push(circle);
-      lastYellowCircleTime = millis();
-
-      // modificateur de vitesse
-      vrby = random(type)
-      if (vrby == 1) {
-        Vyellow = 1.1
-      } else if (vrby == 2) {
-        Vyellow = 1
-      } else if (vrby == 3) {
-        Vyellow = 0.9
-      }
-
-    }
-
-
-
-    for (let i = yellowCircles.length - 1; i >= 0; i--) {
-      let YellowCircle = yellowCircles[i];
-      YellowCircle.y += log(YellowCircle.size) * 0.04 * Vyellow * difficulty; // Ralentissement de la vitesse
-      YellowCircle.size += log(YellowCircle.size) * 0.2 * Vyellow * difficulty; // Ralentissement du grossissement
-
-      fill(255, 255, 0, 120);
-      stroke(0);
-      image(YellowCircle.sprite, YellowCircle.x, YellowCircle.y, YellowCircle.size, YellowCircle.size);
-      ellipse(YellowCircle.x, YellowCircle.y, YellowCircle.size, YellowCircle.size);
-
-      // VISEUR  ROUGE
-      if (dist(mx, my, YellowCircle.x, YellowCircle.y) < viseurSizeXY / 2 + YellowCircle.size / 2) {
-        console.log("yes")
-
-
-        image(viseurR, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      } else {
-        image(viseurB, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      }
-
-      if (YellowCircle.y > ligneEau) {
-        yellowCircles.splice(i, 1);
-        setScreen(3);
-      }
-    }
-
-
-
-
-    // Générer un cercle bleu à intervalle régulier
-
-    if (
-      millis() - lastBlueCircleTime >=
-      blueCircleInterval - difficulty * 1000
-    ) {
-      let circle = {
-        x: random(50, width - 50), // Position aléatoire sur l'axe horizontal
-        y: ligneEau, // Position sur la troisième ligne à 100 pixels de hauteur
-        size: 5,
-        sprite: spritesSousMarin[int(random(0, 3))],
-      };
-      blueCircles.push(circle);
-      lastBlueCircleTime = millis();
-      // Vblue = random(vitesse);
-      vrbb = random(type)
-      if (vrbb == 1) {
-        Vblue = 1.1
-      } else if (vrbb == 2) {
-        Vblue = 1
-      } else if (vrbb == 3) {
-        Vblue = 0.9
-      }
-
-    }
-
-    for (let i = blueCircles.length - 1; i >= 0; i--) {
-      let blueCircle = blueCircles[i];
-      blueCircle.y += log(blueCircle.size) * 0.2 * Vblue * difficulty; // Ralentissement de la vitesse
-      blueCircle.size += log(blueCircle.size) * 0.1 * Vblue * difficulty; // Ralentissement du grossissement
-
-      fill(0, 0, 255, 120);
-      stroke(0);
-      image(blueCircle.sprite, blueCircle.x, blueCircle.y, blueCircle.size, blueCircle.size);
-      ellipse(blueCircle.x, blueCircle.y, blueCircle.size, blueCircle.size);
-
-      // VISEUR JAUNE
-      if (dist(mx, my, blueCircle.x, blueCircle.y) < viseurSizeXY / 2 + blueCircle.size / 2) {
-        console.log("yes")
-
-
-        image(viseurJ, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      } else {
-        image(viseurB, mx, my, viseurSizeXY * 2, viseurSizeXY * 2)
-      }
-
-      if (blueCircle.y > sousmarin) {
-        blueCircles.splice(i, 1);
-        setScreen(3);
-
-      }
-    }
     pop()
+
+
+    showViseur();
+
 
     // SCREEN 3 DEFAITE//
 
@@ -886,7 +751,6 @@ function draw() {
 
     stopAudio('musique');
 
-    push()
     // background(0,0,255)
     push()
     imageMode(CORNER)
@@ -960,6 +824,10 @@ function stopAllAudios() {
 
 function setScreen(newScreen) {
   screen = newScreen;
+
+  if (screen == 2) {
+    newEnemy();
+  }
 }
 
 function updateControllers(data) {
@@ -968,7 +836,7 @@ function updateControllers(data) {
 
   controllersPlayers.forEach((controllerPlayer, index) => {
     let controller = controllersPlayers[index].split('');
-    let playerColor = players[index];
+    let playerColor = colors[index];
 
     controllers[playerColor].joystick.up = int(controller[0]);
     controllers[playerColor].joystick.right = int(controller[1]);
@@ -1001,4 +869,81 @@ function playerDownIsTriggered(playerColor) {
 
 function playerLeftIsTriggered(playerColor) {
   return controllers[playerColor].joystick.left == 1;
+}
+
+function perspectiveAcceleration(x) {
+  return -(Math.cos(Math.PI * x) - 1) / 2;
+  // return x * x;
+}
+
+function updateViseur() {
+  // Orienter le viseur
+
+  if (playerUpIsTriggered('green')) {
+    ay -= 4;
+  }
+  if (playerRightIsTriggered('green')) {
+    ax += 4;
+  }
+  if (playerDownIsTriggered('green')) {
+    ay += 4;
+  }
+  if (playerLeftIsTriggered('green')) {
+    ax -= 4;
+  }
+
+  if (playerUpIsTriggered('red')) {
+    by -= 4;
+  }
+  if (playerRightIsTriggered('red')) {
+    bx += 4;
+  }
+  if (playerDownIsTriggered('red')) {
+    by += 4;
+  }
+  if (playerLeftIsTriggered('red')) {
+    bx -= 4;
+  }
+
+  if (playerUpIsTriggered('yellow')) {
+    cy -= 4;
+  }
+  if (playerRightIsTriggered('yellow')) {
+    cx += 4;
+  }
+  if (playerDownIsTriggered('yellow')) {
+    cy += 4;
+  }
+  if (playerLeftIsTriggered('yellow')) {
+    cx -= 4;
+  }
+}
+
+function showViseur() {
+
+  viseurY = constrain(viseurY, 0, height);
+  viseurX = constrain(viseurX, 0, width);
+
+  viseurY = (ay + by + cy) / 3; // moyenne des mouvement des 3 commandes
+  viseurX = (ax + bx + cx) / 3;
+
+  image(viseurImage, viseurX, viseurY, viseurSizeXY * 2, viseurSizeXY * 2)
+
+  ax = bx = cx = constrain(viseurX, 0, width);
+  ay = by = cy = constrain(viseurY, 0, height);
+}
+
+function newEnemy(color = null) {
+  let enemyColor = color ?? colors[floor(random(0, colors.length))]; // green, red, yellow
+
+  let enemy = {
+    type: enemyColor,
+    x: random(50, width - 50), // Position aléatoire sur l'axe horizontal
+    sprite: enemiesConfig[enemyColor].sprites[int(random(0, enemiesConfig[enemyColor].sprites.length))],
+
+    startTime: millis(),
+    lifespan: enemyLifespan,
+  };
+
+  enemies.push(enemy);
 }
