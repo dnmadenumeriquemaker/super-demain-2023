@@ -792,7 +792,7 @@ function hasScored() {
   if (score >= 4) {
     // TODO: calibration de la difficulté
     timeBetweenTwoEnemies = max(5000 - (score * 500), 3000); // Les ennemis arrivent plus vite
-    enemyLifespan = max(20000 - (score * 1000), 5000); // Les ennemis vont plus vite
+    enemyLifespan = max(20000 - (score * 250), 5000); // Les ennemis vont plus vite
   }
 }
 
