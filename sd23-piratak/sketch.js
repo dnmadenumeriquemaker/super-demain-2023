@@ -456,54 +456,13 @@ function draw() {
 
 
 
-    // Affichage du score
-    // TODO: à améliorer
-    push();
-    fill(135, 205, 255);
-    textAlign(LEFT);
-    textSize(20);
-    textStyle(BOLD);
-    text("score :", scoreX, scoreY);
-    text(score, scoreX + 80, scoreY + 1);
-    pop();
-
-
-
-
-    noFill()
-
-    // bulletSize = map(viseurY, 0, 400, 40, 20);
-
-
     updateViseur();
+    updateCanon();
 
 
 
 
 
-
-
-
-    // CANON
-    // Carré orienté vers la souris
-    let angle = atan2(viseurY - height, viseurX - width / 2);
-    viseurAngle = angle; // Met à jour l'angle du carré
-
-    push();
-    translate(canonX, height);
-    rotate(viseurAngle); // Utilise l'angle du carré
-    fill(255, 0, 0);
-    rectMode(CENTER);
-    rect(0, 0, canonSize, canonSize);
-    pop();
-
-
-
-
-
-
-
-    // TODO: FAIRE EN SORTE QUE LE BOULET DE CANON APPARAISSE EN GROS SUR L'ECRAN PUIS DIMINUE EN TAILLE
 
     // Tir de boulet de canon !
 
@@ -544,12 +503,15 @@ function draw() {
         // On l'ajoute aux boulets de canon
         bullets.push(bullet);
 
+        // On réinitialise le délai avec le prochain tir
         lastBulletTime = millis();
 
         playAudio('tir');
       }
     }
 
+    // Antiflood du shoot
+    // (éviter de pouvoir rester appuyé sur un bouton pour tirer en continu)
     if (playerButtonIsNotPressed('green')
       && playerButtonIsNotPressed('red')
       && playerButtonIsNotPressed('yellow')) {
@@ -562,7 +524,7 @@ function draw() {
 
     // Générer un ennemi régulièrement
 
-    if (millis() - lastEnemyGeneratedTime >= timeBetweenTwoEnemies || !lastEnemyGeneratedTime) {
+    if (millis() - lastEnemyGeneratedTime >= timeBetweenTwoEnemies || !lastEnemyGeneratedTime) {
       newEnemy();
 
       lastEnemyGeneratedTime = millis();
@@ -593,8 +555,8 @@ function draw() {
 
       } else {
         // Partie perdue
-        enemies.splice(i, 1);
-        //setScreen(3);
+        // enemies.splice(i, 1);
+        hasLost();
       }
 
       if (dist(viseurX, viseurY, enemy.x, enemy.y) < viseurSize / 2 + enemy.size / 2) {
@@ -602,7 +564,7 @@ function draw() {
         viseurImage = viseurs[enemy.type];
 
         // TODO BONUS: Arduino: éclairer le bouton à presser 
-        // (attention à l'envoi flood de données)
+        // (attention à l'envoi flood de données, on est dans draw)
       }
     }
 
@@ -613,6 +575,7 @@ function draw() {
       let bullet = bullets[i];
 
       moveBulletAndCheckCollisions(bullet);
+
       if (bullet.dead) {
         bullets.splice(i, 1);
         continue;
@@ -623,12 +586,9 @@ function draw() {
 
     pop()
 
-
+    displayCanon();
     displayViseur();
-
-
-
-
+    displayScore();
   }
 
   /**
@@ -639,51 +599,16 @@ function draw() {
   else if (screen == 3) {
     stopAudio('musique');
 
-    // background(0,0,255)
-    push()
-    imageMode(CORNER)
-    image(gameBackground, 0, 0, width, height) //remplacer par le fond finale
-    pop()
-    //  background(48, 191, 191);
     fill(255);
     textAlign(CENTER);
     textSize(28);
     text(
       "vous avez perdu.", width / 2, height / 2 - 20);
 
-
-
-    if (keyIsDown(32)) {
-      push()
-      fill(0, 255, 0)
-      circle(width / 2 - 100, height / 1.5, 50)
-      pop()
-      text("prêt", width / 2 - 100, height / 1.5 + 50)
-    }
-
-    if (keyIsDown(66)) {
-      push()
-      fill(255, 0, 0)
-      circle(width / 2, height / 1.5, 50)
-      pop()
-      text("prêt", width / 2, height / 1.5 + 50)
-    }
-    if (keyIsDown(86)) {
-      push()
-      fill(255, 255, 0)
-      circle(width / 2 + 100, height / 1.5, 50)
-      pop()
-      text("prêt", width / 2 + 100, height / 1.5 + 50)
-    }
-
-
-    if (keyIsDown(32) && keyIsDown(66) && keyIsDown(86) && !allButtonsArePressed) {
-      location.reload();
-      allButtonsArePressed = true
-    }
-    pop()
+    setTimeout(function(){
+      setScreen(0);
+    }, 15000); // Temps de l'écran de défaite
   }
-
 }
 
 
@@ -865,10 +790,14 @@ function hasScored() {
 
   // Augmenter la difficulté
   if (score >= 4) {
-    timeBetweenTwoEnemies = 10000 - (score * 1000); // Les ennemis arrivent plus vite
-    enemyLifespan = 20000 - (score * 1000); // Les ennemis vont plus vite
+    // TODO: calibration de la difficulté
+    timeBetweenTwoEnemies = max(5000 - (score * 500), 3000); // Les ennemis arrivent plus vite
+    enemyLifespan = max(20000 - (score * 1000), 5000); // Les ennemis vont plus vite
   }
+}
 
+function hasLost() {
+  setScreen(3);
 }
 
 function moveBulletAndCheckCollisions(bullet) {
@@ -884,7 +813,6 @@ function moveBulletAndCheckCollisions(bullet) {
     && bullet.y < bullet.yEnd + bullet.size / 2
     && bullet.y > bullet.yEnd - bullet.size / 2
   ) {
-    // bullets.splice(i, 1);
     bullet.dead = true;
     return;
   }
@@ -897,7 +825,6 @@ function moveBulletAndCheckCollisions(bullet) {
     || bullet.x < 0
     || bullet.x > width
     || bullet.y > height) {
-    // bullets.splice(i, 1);
     bullet.dead = true;
     return;
   }
@@ -916,7 +843,6 @@ function moveBulletAndCheckCollisions(bullet) {
 
       // Si la distance est inférieure à la somme des rayons
       if (d < bullet.size / 2 + enemy.size / 2) {
-        // bullets.splice(i, 1);
         bullet.dead = true;
         enemies.splice(j, 1);
 
@@ -929,4 +855,31 @@ function moveBulletAndCheckCollisions(bullet) {
 function displayBullet(bullet) {
   fill(255, 0, 255);
   ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
+}
+
+function updateCanon() {
+  viseurAngle = atan2(viseurY - height, viseurX - width / 2); // Met à jour l'angle du carré
+}
+
+function displayCanon() {
+  push();
+  translate(canonX, height);
+  rotate(viseurAngle); // Utilise l'angle du carré
+  fill(255, 0, 0);
+  rectMode(CENTER);
+  rect(0, 0, canonSize, canonSize);
+  pop();
+}
+
+function displayScore() {
+  // Affichage du score
+  // TODO: à améliorer
+  push();
+  fill(135, 205, 255);
+  textAlign(LEFT);
+  textSize(20);
+  textStyle(BOLD);
+  text("score :", scoreX, scoreY);
+  text(score, scoreX + 80, scoreY + 1);
+  pop();
 }
