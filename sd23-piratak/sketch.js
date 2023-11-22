@@ -13,11 +13,6 @@ let scoreDif = 0.1
 let difficulty = 1;
 let score = 0;
 
-let horizon
-let avionSpawn
-let ligneEau
-let sousmarin
-
 let squareX;
 let squareSize = 50;
 let viseurAngle = 0;
@@ -68,20 +63,8 @@ let enemiesConfig = {
   }
 }
 
-let greenEnemies = [];
-let lastgreenEnemyTime = 10000;
-let greenEnemyInterval = 13000; // Intervalle d'apparition des cercles blancs
-
-let redEnemies = [];
-let lastredEnemyTime = 18000;
-let redEnemyInterval = 13000; // Intervalle d'apparition des cercles jaune
-
-let yellowEnemies = [];
-let lastyellowEnemyTime = 24000;
-let yellowEnemyInterval = 13000; // Intervalle d'apparition des cercles bleus
-
 let bulletType = [1, 2, 3];
-let bulletSize = 20;
+let bulletSize = 40;
 let clr = 0
 
 // niveau de vitesse des ennemies
@@ -203,14 +186,7 @@ function setup() {
   scoreX = 30;
   scoreY = 30;
 
-  // Zones de spawn des ennemis
-  horizon = height / 2.45
-  avionSpawn = height / 2.55
-  ligneEau = height / 1.77
-  sousmarin = height / 1.3
-
-
-
+  // Initier la communication avec Arduino
   if (ENABLE_ARDUINO) {
     port = createSerial();
 
@@ -578,7 +554,7 @@ function draw() {
           y: height,
           xEnd: viseurX,
           yEnd: viseurY,
-          // size: bulletSize,
+          size: bulletSize,
           angle: bulletAngle,
           type: bulletType,
         };
