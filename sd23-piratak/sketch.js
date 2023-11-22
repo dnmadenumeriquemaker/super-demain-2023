@@ -20,7 +20,7 @@ let sousmarin
 
 let squareX;
 let squareSize = 50;
-let squareAngle = 0;
+let viseurAngle = 0;
 let distCrosshair = 0;
 let ax, ay, bx, by, cx, cy;
 let viseurX;
@@ -34,8 +34,9 @@ let viseurImage;
 let viseurs = {};
 
 let bullets = [];
-let lastBulletTime = 0;
+let lastBulletTime = false;
 let timeBetweenTwoBullets = 1000; // Temps entre deux boulets de canon
+let canShootBullet = true;
 
 let enemies = [];
 let lastEnemyGeneratedTime = 0;
@@ -80,7 +81,7 @@ let lastyellowEnemyTime = 24000;
 let yellowEnemyInterval = 13000; // Intervalle d'apparition des cercles bleus
 
 let bulletType = [1, 2, 3];
-let bulletSize;
+let bulletSize = 20;
 let clr = 0
 
 // niveau de vitesse des ennemies
@@ -513,7 +514,7 @@ function draw() {
     noFill()
     distCrosshair = dist(viseurX, viseurY, width / 2, height);
 
-    bulletSize = map(viseurY, 0, 400, 40, 20);
+    // bulletSize = map(viseurY, 0, 400, 40, 20);
 
 
     updateViseur();
@@ -524,20 +525,20 @@ function draw() {
 
 
 
-    /*
+
     // CANON
     // Carré orienté vers la souris
-    let angle = atan2(viseurY - height, viseurX - squareX);
-    squareAngle = angle; // Met à jour l'angle du carré
+    let angle = atan2(viseurY - height, viseurX - width / 2);
+    viseurAngle = angle; // Met à jour l'angle du carré
 
     push();
     translate(squareX, height);
-    rotate(squareAngle); // Utilise l'angle du carré
+    rotate(viseurAngle); // Utilise l'angle du carré
     fill(255, 0, 0);
     rectMode(CENTER);
-    //rect(0, 0, squareSize, squareSize);
+    rect(0, 0, squareSize, squareSize);
     pop();
-    */
+
 
 
 
@@ -548,40 +549,53 @@ function draw() {
 
     // Tir de boulet de canon !
 
-    if (playerButtonIsPressed('green')
+    if ((playerButtonIsPressed('green')
       || playerButtonIsPressed('red')
-      || playerButtonIsPressed('yellow')) {
+      || playerButtonIsPressed('yellow'))
+      && canShootBullet) {
+      canShootBullet = false;
 
       if (playerButtonIsPressed('green')) {
-        bulletType = 1; //type 1 = contre les ennemis en l'air
+        bulletType = 'green'; // contre les ennemis en l'air
       }
 
       if (playerButtonIsPressed('red')) {
-        bulletType = 2; //type 1 = contre les ennemis sur l'eau
+        bulletType = 'red'; // contre les ennemis sur l'eau
       }
 
       if (playerButtonIsPressed('yellow')) {
-        bulletType = 3; //type 1 = contre les ennemis sous l'eau
+        bulletType = 'yellow'; // contre les ennemis sous l'eau
       }
 
       // S'il y a assez de temps entre le précédent tir et ce tir
-      if (millis() - lastBulletTime >= timeBetweenTwoBullets) {
-        mouseClickX = viseurX;
-        mouseClickY = viseurY;
+      if (millis() - lastBulletTime >= timeBetweenTwoBullets || !lastBulletTime) {
+
+        let bulletAngle = - atan2(viseurY - height, viseurX - width / 2);
 
         // On crée le boulet de canon
         let bullet = {
-          x: squareX,
+          x: width / 2,
           y: height,
-          size: bulletSize,
-          angle: -squareAngle,
+          xEnd: viseurX,
+          yEnd: viseurY,
+          // size: bulletSize,
+          angle: bulletAngle,
+          type: bulletType,
         };
 
         // On l'ajoute aux boulets de canon
         bullets.push(bullet);
 
+        lastBulletTime = millis();
+
         playAudio('tir');
       }
+    }
+
+    if (playerButtonIsNotPressed('green')
+      && playerButtonIsNotPressed('red')
+      && playerButtonIsNotPressed('yellow')) {
+      canShootBullet = true;
     }
 
 
@@ -626,35 +640,35 @@ function draw() {
       }
 
       if (dist(viseurX, viseurY, enemy.x, enemy.y) < viseurSizeXY / 2 + enemy.size / 2) {
-        console.log("yes")
 
         viseurImage = viseurs[enemy.type];
+
+        // TODO BONUS: Arduino: éclairer le bouton à presser 
+        // (attention à l'envoi flood de données)
       }
     }
 
-    console.log(bullets);
+
 
     // Affichage des boulets de canon lancés
     for (let i = bullets.length - 1; i >= 0; i--) {
       let bullet = bullets[i];
 
+      // TODO: pour ralentir le bouler, multiplier par un nombre de plus en plus petit
       bullet.x += 7 * cos(bullet.angle);
       bullet.y -= 7 * sin(bullet.angle);
-      bullet.size = bulletSize; //log(bullet.size)*0.12 ; // Ralentissement du grossissement
-
-      bullet.y -= log(bullet.size) * 0.5; // Ralentissement de la vitesse
+      bullet.size = bulletSize;
 
       fill(255, 0, 255);
       ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
 
       // Si le boulet de canon arrive en bout de trajet
       // et n'a rencontré aucun ennemi, on le supprime
-      // TODO: vérifier mouseClickX et mouseClickY 
       if (
-        bullet.x < mouseClickX + 11
-        && bullet.x > mouseClickX - 11
-        && bullet.y < mouseClickY + 11
-        && bullet.y > mouseClickY - 11
+        bullet.x < bullet.xEnd + bullet.size / 2
+        && bullet.x > bullet.xEnd - bullet.size / 2
+        && bullet.y < bullet.yEnd + bullet.size / 2
+        && bullet.y > bullet.yEnd - bullet.size / 2
       ) {
         bullets.splice(i, 1);
         continue;
@@ -673,66 +687,35 @@ function draw() {
 
 
       else {
-        // On vérifie les collisions entre les boulets de canon et les avions (air)
-        for (let j = greenEnemies.length - 1; j >= 0; j--) {
-          let greenEnemy = greenEnemies[j];
-          let d = dist(bullet.x, bullet.y, greenEnemy.x, greenEnemy.y);
-          if (
-            d < bullet.size / 2 + greenEnemy.size / 2 &&
-            mouseClickY + greenEnemy.size / 2 > greenEnemy.y &&
-            bulletType == 1
-          ) {
-            bullets.splice(i, 1);
-            greenEnemies.splice(j, 1);
+        // On vérifie les collisions entre les boulets de canon et les  ennemis
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          let enemy = enemies[j];
 
-            score = score + 1;
+          // Si ça n'est pas la bonne combinaison de couleur, on passe
+          if (enemy.type != bullet.type) continue;
+
+          // On calcule la distance entre le boulet de canon et l'ennemi
+          let d = dist(bullet.x, bullet.y, enemy.x, enemy.y);
+
+          // Si la distance est inférieure à la somme des rayons
+          if (d < bullet.size / 2 + enemy.size / 2) {
+            bullets.splice(i, 1);
+            enemies.splice(j, 1);
+
+            score += 1;
+
+            playAudio('explosion');
+
+            // TODO: augmenter la difficulté
+
+            /*
+            // TODO
             if (score > 40) {
               scoreDif = scoreDif + 0.1
               //jouer le son "explosion"
               playAudio('explosion');
             }
-          }
-        }
-      }
-
-
-      // Vérification de collision entre cercles rouges et jaunes (eau)
-      for (let k = redEnemies.length - 1; k >= 0; k--) {
-        let redEnemy = redEnemies[k];
-        let d = dist(bullet.x, bullet.y, redEnemy.x, redEnemy.y);
-        if (
-          d < bullet.size / 2 + redEnemy.size / 2 &&
-          mouseClickY + redEnemy.size / 2 > redEnemy.y &&
-          bulletType == 2
-        ) {
-          bullets.splice(i, 1);
-          redEnemies.splice(k, 1);
-          score = score + 1;
-          if (score > 40) {
-            scoreDif = scoreDif + 0.1
-            //jouer le son "explosion"
-            playAudio('explosion');
-          }
-        }
-      }
-
-
-      // Vérification de collision entre cercles rouges et bleus (sous l'eau)
-      for (let l = yellowEnemies.length - 1; l >= 0; l--) {
-        let yellowEnemy = yellowEnemies[l];
-        let d = dist(bullet.x, bullet.y, yellowEnemy.x, yellowEnemy.y);
-        if (
-          d < bullet.size / 2 + yellowEnemy.size / 2 &&
-          mouseClickY + yellowEnemy.size / 2 > yellowEnemy.y &&
-          bulletType == 3
-        ) {
-          bullets.splice(i, 1);
-          yellowEnemies.splice(l, 1);
-          score = score + 1;
-          if (score > 40) {
-            scoreDif = scoreDif + 0.1
-            //jouer le son "explosion"
-            playAudio('explosion');
+            */
           }
         }
       }
@@ -927,7 +910,10 @@ function showViseur() {
   viseurY = (ay + by + cy) / 3; // moyenne des mouvement des 3 commandes
   viseurX = (ax + bx + cx) / 3;
 
+  push()
+  imageMode(CENTER)
   image(viseurImage, viseurX, viseurY, viseurSizeXY * 2, viseurSizeXY * 2)
+  pop()
 
   ax = bx = cx = constrain(viseurX, 0, width);
   ay = by = cy = constrain(viseurY, 0, height);
