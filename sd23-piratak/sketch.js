@@ -5,39 +5,44 @@ let IS_ARDUINO_OK = false;
 // Controle viseur : ZQSD,8426, fleches directionelles;
 // tir : espace (air),v (bateaux), b (sous l'eau)
 
+// Pas d'écran au lancement du dispositif
+// pour attente que Arduino soit bien connecté
 let screen = null;
 
-let viseurSizeXY = 20
+let canonX;
+let canonSize = 50;
 
-let scoreDif = 0.1
-let difficulty = 1;
-let score = 0;
-
-let squareX;
-let squareSize = 50;
 let viseurAngle = 0;
-let distCrosshair = 0;
+let viseurSize = 20;
 let ax, ay, bx, by, cx, cy;
+
 let viseurX;
 let viseurY;
+
 let scoreX;
 let scoreY;
-let mouseClickX;
-let mouseClickY;
 
 let viseurImage;
 let viseurs = {};
 
-let bullets = [];
-let lastBulletTime = false;
-let timeBetweenTwoBullets = 1000; // Temps entre deux boulets de canon
-let canShootBullet = true;
+
+// Valeurs initialisées à chaque partie
+// dans la fonction initGame()
+let score;
 
 let enemies = [];
-let lastEnemyGeneratedTime = 0;
-let timeBetweenTwoEnemies = 15000; // Temps entre deux ennemis
+let lastEnemyGeneratedTime;
+let timeBetweenTwoEnemies;
+let enemyLifespan;
 
-let enemyLifespan = 20000; // Durée de vie des ennemis
+let bullets = [];
+let lastBulletTime;
+let timeBetweenTwoBullets;
+let canShootBullet;
+
+let nextEnemyToGenerate;
+
+// - - - - - - -
 
 let enemiesConfig = {
   green: {
@@ -59,24 +64,14 @@ let enemiesConfig = {
     yEnd: 580,
 
     sizeStart: 5,
-    sizeEnd: 300,
+    sizeEnd: 250,
   }
 }
 
 let bulletType = [1, 2, 3];
 let bulletSize = 40;
-let clr = 0
-
-// niveau de vitesse des ennemies
-let vitesse = [1.5, 1, 0.5];
-let Vwhite;
-let Vyellow;
-let Vblue;
 
 let type = [1, 2, 3];
-let vrbw //modificateur de vitesse pour les ronds blancs
-let vrby //modificateur de vitesse pour les ronds jaunes
-let vrbb //modificateur de vitesse pour les ronds bleus
 
 let allButtonsArePressed = false
 
@@ -178,7 +173,7 @@ function setup() {
   layerGameBackground.image(gameBackground, 0, 0, width, height);
 
   // Canon et viseur
-  squareX = width / 2;
+  canonX = width / 2;
   ax = bx = cx = viseurX = width / 2;
   ay = by = cy = viseurY = height / 2;
 
@@ -305,6 +300,8 @@ function draw() {
     fill(255);
     noStroke()
     image(txtWaitScreen, width / 2, height / 2, width - 200, height - 200)
+
+    initGame();
 
 
     // Feedback du bouton pressé pour le joueur vert
@@ -459,20 +456,6 @@ function draw() {
 
 
 
-
-
-
-    text(bulletType, 10, 70);
-
-    if (score < 40) {
-      difficulty = 0.1
-    } else {
-      difficulty = exp(scoreDif * 0.01)
-    }
-
-    // text(difficulty, 50, 50);
-
-
     // Affichage du score
     // TODO: à améliorer
     push();
@@ -488,7 +471,6 @@ function draw() {
 
 
     noFill()
-    distCrosshair = dist(viseurX, viseurY, width / 2, height);
 
     // bulletSize = map(viseurY, 0, 400, 40, 20);
 
@@ -508,11 +490,11 @@ function draw() {
     viseurAngle = angle; // Met à jour l'angle du carré
 
     push();
-    translate(squareX, height);
+    translate(canonX, height);
     rotate(viseurAngle); // Utilise l'angle du carré
     fill(255, 0, 0);
     rectMode(CENTER);
-    rect(0, 0, squareSize, squareSize);
+    rect(0, 0, canonSize, canonSize);
     pop();
 
 
@@ -580,7 +562,7 @@ function draw() {
 
     // Générer un ennemi régulièrement
 
-    if (millis() - lastEnemyGeneratedTime >= timeBetweenTwoEnemies) {
+    if (millis() - lastEnemyGeneratedTime >= timeBetweenTwoEnemies || !lastEnemyGeneratedTime) {
       newEnemy();
 
       lastEnemyGeneratedTime = millis();
@@ -615,7 +597,7 @@ function draw() {
         //setScreen(3);
       }
 
-      if (dist(viseurX, viseurY, enemy.x, enemy.y) < viseurSizeXY / 2 + enemy.size / 2) {
+      if (dist(viseurX, viseurY, enemy.x, enemy.y) < viseurSize / 2 + enemy.size / 2) {
 
         viseurImage = viseurs[enemy.type];
 
@@ -630,84 +612,31 @@ function draw() {
     for (let i = bullets.length - 1; i >= 0; i--) {
       let bullet = bullets[i];
 
-      // TODO: pour ralentir le bouler, multiplier par un nombre de plus en plus petit
-      bullet.x += 7 * cos(bullet.angle);
-      bullet.y -= 7 * sin(bullet.angle);
-      bullet.size = bulletSize;
-
-      fill(255, 0, 255);
-      ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
-
-      // Si le boulet de canon arrive en bout de trajet
-      // et n'a rencontré aucun ennemi, on le supprime
-      if (
-        bullet.x < bullet.xEnd + bullet.size / 2
-        && bullet.x > bullet.xEnd - bullet.size / 2
-        && bullet.y < bullet.yEnd + bullet.size / 2
-        && bullet.y > bullet.yEnd - bullet.size / 2
-      ) {
+      moveBulletAndCheckCollisions(bullet);
+      if (bullet.dead) {
         bullets.splice(i, 1);
         continue;
       }
 
-
-      // Si le boulet de canon est hors-champ,
-      // on le supprime
-      else if (
-        bullet.y < 0
-        || bullet.x < 0
-        || bullet.x > width
-        || bullet.y > height) {
-        bullets.splice(i, 1);
-      }
-
-
-      else {
-        // On vérifie les collisions entre les boulets de canon et les  ennemis
-        for (let j = enemies.length - 1; j >= 0; j--) {
-          let enemy = enemies[j];
-
-          // Si ça n'est pas la bonne combinaison de couleur, on passe
-          if (enemy.type != bullet.type) continue;
-
-          // On calcule la distance entre le boulet de canon et l'ennemi
-          let d = dist(bullet.x, bullet.y, enemy.x, enemy.y);
-
-          // Si la distance est inférieure à la somme des rayons
-          if (d < bullet.size / 2 + enemy.size / 2) {
-            bullets.splice(i, 1);
-            enemies.splice(j, 1);
-
-            score += 1;
-
-            playAudio('explosion');
-
-            // TODO: augmenter la difficulté
-
-            /*
-            // TODO
-            if (score > 40) {
-              scoreDif = scoreDif + 0.1
-              //jouer le son "explosion"
-              playAudio('explosion');
-            }
-            */
-          }
-        }
-      }
+      displayBullet(bullet);
     }
 
     pop()
 
 
-    showViseur();
+    displayViseur();
 
 
-    // SCREEN 3 DEFAITE//
 
-  } else if (screen == 3) {
-    //éteindre la music
 
+  }
+
+  /**
+   * SCREEN 3
+   * Défaite
+   */
+
+  else if (screen == 3) {
     stopAudio('musique');
 
     // background(0,0,255)
@@ -783,10 +712,6 @@ function stopAllAudios() {
 
 function setScreen(newScreen) {
   screen = newScreen;
-
-  if (screen == 2) {
-    newEnemy();
-  }
 }
 
 function updateControllers(data) {
@@ -830,10 +755,9 @@ function playerLeftIsTriggered(playerColor) {
   return controllers[playerColor].joystick.left == 1;
 }
 
-function perspectiveAcceleration(x) {
-  return -(Math.cos(Math.PI * x) - 1) / 2;
-  // return x * x;
-}
+// function perspectiveAcceleration(x) {
+//   return -(Math.cos(Math.PI * x) - 1) / 2;
+// }
 
 function updateViseur() {
   // Orienter le viseur
@@ -878,7 +802,7 @@ function updateViseur() {
   }
 }
 
-function showViseur() {
+function displayViseur() {
 
   viseurY = constrain(viseurY, 0, height);
   viseurX = constrain(viseurX, 0, width);
@@ -888,7 +812,7 @@ function showViseur() {
 
   push()
   imageMode(CENTER)
-  image(viseurImage, viseurX, viseurY, viseurSizeXY * 2, viseurSizeXY * 2)
+  image(viseurImage, viseurX, viseurY, viseurSize * 2, viseurSize * 2)
   pop()
 
   ax = bx = cx = constrain(viseurX, 0, width);
@@ -896,7 +820,12 @@ function showViseur() {
 }
 
 function newEnemy(color = null) {
-  let enemyColor = color ?? colors[floor(random(0, colors.length))]; // green, red, yellow
+  let enemyColor = color;
+
+  if (!enemyColor) {
+    nextEnemyToGenerate = (nextEnemyToGenerate + 1) % colors.length;
+    enemyColor = colors[nextEnemyToGenerate];
+  }
 
   let enemy = {
     type: enemyColor,
@@ -908,4 +837,96 @@ function newEnemy(color = null) {
   };
 
   enemies.push(enemy);
+}
+
+function initGame() {
+  score = 0;
+
+  enemies = [];
+  enemyLifespan = 20000; // Durée de vie des ennemis
+  timeBetweenTwoEnemies = 10000; // Temps entre deux ennemis
+  lastEnemyGeneratedTime = 0;
+
+  bullets = [];
+  timeBetweenTwoBullets = 1000; // Temps entre deux boulets de canon
+  lastBulletTime = false;
+  canShootBullet = true;
+
+  nextEnemyToGenerate = floor(random(0, colors.length));
+}
+
+function hasScored() {
+  score += 1;
+
+  playAudio('explosion');
+
+  // Force la génération du prochain ennemi (évite les temps morts)
+  lastEnemyGeneratedTime = false;
+
+  // Augmenter la difficulté
+  if (score >= 4) {
+    timeBetweenTwoEnemies = 10000 - (score * 1000); // Les ennemis arrivent plus vite
+    enemyLifespan = 20000 - (score * 1000); // Les ennemis vont plus vite
+  }
+
+}
+
+function moveBulletAndCheckCollisions(bullet) {
+  bullet.x += 7 * cos(bullet.angle);
+  bullet.y -= 7 * sin(bullet.angle);
+  bullet.size = bulletSize;
+
+  // Si le boulet de canon arrive en bout de trajet
+  // et n'a rencontré aucun ennemi, on le supprime
+  if (
+    bullet.x < bullet.xEnd + bullet.size / 2
+    && bullet.x > bullet.xEnd - bullet.size / 2
+    && bullet.y < bullet.yEnd + bullet.size / 2
+    && bullet.y > bullet.yEnd - bullet.size / 2
+  ) {
+    // bullets.splice(i, 1);
+    bullet.dead = true;
+    return;
+  }
+
+
+  // Si le boulet de canon est hors-champ,
+  // on le supprime
+  else if (
+    bullet.y < 0
+    || bullet.x < 0
+    || bullet.x > width
+    || bullet.y > height) {
+    // bullets.splice(i, 1);
+    bullet.dead = true;
+    return;
+  }
+
+
+  else {
+    // On vérifie les collisions entre les boulets de canon et les  ennemis
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      let enemy = enemies[j];
+
+      // Si ça n'est pas la bonne combinaison de couleur, on passe
+      if (enemy.type != bullet.type) continue;
+
+      // On calcule la distance entre le boulet de canon et l'ennemi
+      let d = dist(bullet.x, bullet.y, enemy.x, enemy.y);
+
+      // Si la distance est inférieure à la somme des rayons
+      if (d < bullet.size / 2 + enemy.size / 2) {
+        // bullets.splice(i, 1);
+        bullet.dead = true;
+        enemies.splice(j, 1);
+
+        hasScored();
+      }
+    }
+  }
+}
+
+function displayBullet(bullet) {
+  fill(255, 0, 255);
+  ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
 }
