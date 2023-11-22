@@ -138,11 +138,17 @@ function preload() {
   smM = loadImage("SousMarin M.png")
   smS = loadImage("SousMarin S.png")
   txt0 = loadImage("mechano.png")
-  txtWaitScreen = loadImage("mechano.png")
-  txtInstructions = loadImage("mechano.png")
+  txtWaitScreen = loadImage("Etape1.png")
+  txtInstructions = loadImage("Etape2.png")
   feedbackButtonOK = loadImage("mechano.png")
   txt2 = loadImage("fond.png")
-
+ // scoreImg =loadImage("score")
+  
+  txtscore = loadImage("Score.png")
+  txtPerdu = loadImage("Perdu.png")
+  txtPerduScore = loadImage("PerduVotreScore.png")
+  
+  
   viseurNeutral = loadImage("viseur_blanc.png")
   viseurs.green = loadImage("viseur_vert.png")
   viseurs.red = loadImage("viseur_rouge.png")
@@ -178,7 +184,7 @@ function setup() {
   ay = by = cy = viseurY = height / 2;
 
   // Coordonnées du score
-  scoreX = 30;
+  scoreX = width /2;
   scoreY = 30;
 
   // Initier la communication avec Arduino
@@ -299,7 +305,7 @@ function draw() {
     //imgfond(width/2,height/2)
     fill(255);
     noStroke()
-    image(txtWaitScreen, width / 2, height / 2, width - 200, height - 200)
+    image(txtWaitScreen, width / 2, height / 2, width , height )
 
     initGame();
 
@@ -308,30 +314,30 @@ function draw() {
     if (playerButtonIsPressed('green')) {
       push()
       fill(0, 255, 0)
-      circle(width / 2 - 100, height / 1.5, 50)
+      circle(width / 2 - 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 - 100, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2 - 100, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2 - 100, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2 - 100, height / 1.3 + 40, 50, 20)
     }
 
     // Feedback du bouton pressé pour le joueur rouge
     if (playerButtonIsPressed('red')) {
       push()
       fill(255, 0, 0)
-      circle(width / 2, height / 1.5, 50)
+      circle(width / 2, height / 1.3, 50)
       pop()
-      text("prêt", width / 2, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 50, 20)
     }
 
     // Feedback du bouton pressé pour le joueur jaune
     if (playerButtonIsPressed('yellow')) {
       push()
       fill(255, 255, 0)
-      circle(width / 2 + 100, height / 1.5, 50)
+      circle(width / 2 + 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 + 100, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2 + 100, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2 + 100, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2 + 100, height / 1.3 + 40, 50, 20)
     }
 
     // Si tout le monde presse les boutons en même temps
@@ -351,7 +357,7 @@ function draw() {
    * */
 
   else if (screen == 1) {
-    image(txtInstructions, width / 2, height / 2 - 10, 400, 200)
+    image(txtInstructions, width / 2, height / 2 , width, height)
 
     /*
      Coordonnez-vous bien pour le diriger
@@ -363,30 +369,30 @@ function draw() {
     if (playerButtonIsPressed('green')) {
       push()
       fill(0, 255, 0)
-      circle(width / 2 - 100, height / 1.5, 50)
+      circle(width / 2 - 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 - 100, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2 - 100, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2 - 100, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2 - 100, height / 1.3 + 40, 50, 20)
     }
 
     // Feedback du bouton pressé pour le joueur rouge
     if (playerButtonIsPressed('red')) {
       push()
       fill(255, 0, 0)
-      circle(width / 2, height / 1.5, 50)
+      circle(width / 2, height / 1.3, 50)
       pop()
-      text("prêt", width / 2, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 50, 20)
     }
 
     // Feedback du bouton pressé pour le joueur jaune
     if (playerButtonIsPressed('yellow')) {
       push()
       fill(255, 255, 0)
-      circle(width / 2 + 100, height / 1.5, 50)
+      circle(width / 2 + 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 + 100, height / 1.5 + 50)
-      image(feedbackButtonOK, width / 2 + 100, height / 1.5 + 40, 50, 20)
+      text("prêt", width / 2 + 100, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2 + 100, height / 1.3 + 40, 50, 20)
     }
 
 
@@ -412,7 +418,7 @@ function draw() {
     viseurImage = viseurNeutral;
 
     // Démarrer la musique
-    playAudio('musique');
+    //playAudio('musique');                               //a réactiver//
 
     if (DEBUG) {
       fill(0)// Tracer les trois lignes horizontales
@@ -498,6 +504,7 @@ function draw() {
           size: bulletSize,
           angle: bulletAngle,
           type: bulletType,
+          
         };
 
         // On l'ajoute aux boulets de canon
@@ -506,7 +513,7 @@ function draw() {
         // On réinitialise le délai avec le prochain tir
         lastBulletTime = millis();
 
-        playAudio('tir');
+     //   playAudio('tir');
       }
     }
 
@@ -599,12 +606,14 @@ function draw() {
   else if (screen == 3) {
     stopAudio('musique');
 
-    fill(255);
+    fill(0);
     textAlign(CENTER);
-    textSize(28);
-    text(
-      "vous avez perdu.", width / 2, height / 2 - 20);
-
+    textSize(45);
+   // text("vous avez perdu.", width / 2, height / 2 - 20);
+    image(txtPerdu,width/2 ,height/2,800,450)
+    image(txtPerduScore,width/2 -40,height/2 +80,200,80)
+    text(score, scoreX + 80, height/2+100 );
+    
     setTimeout(function(){
       setScreen(0);
     }, 15000); // Temps de l'écran de défaite
@@ -623,9 +632,9 @@ function playAudio(audio) {
 function stopAudio(audio) {
   if (!CAN_AUDIO) return;
 
-  if (audios[audio]) {
-    audios[audio].pause();
-    audios[audio].currentTime = 0.00001;
+  if (audios["musique"]) {
+    audios["musique"].pause();
+    audios["musique"].currentTime = 0.00001;
   }
 }
 
@@ -783,7 +792,7 @@ function initGame() {
 function hasScored() {
   score += 1;
 
-  playAudio('explosion');
+ // playAudio('explosion');
 
   // Force la génération du prochain ennemi (évite les temps morts)
   lastEnemyGeneratedTime = false;
@@ -855,6 +864,7 @@ function moveBulletAndCheckCollisions(bullet) {
 function displayBullet(bullet) {
   fill(255, 0, 255);
   ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
+  image(boulet,bullet.x, bullet.y, bullet.size, bullet.size)
 }
 
 function updateCanon() {
@@ -868,6 +878,7 @@ function displayCanon() {
   fill(255, 0, 0);
   rectMode(CENTER);
   rect(0, 0, canonSize, canonSize);
+  image(txt0,30,0,canonSize*2,canonSize) // img final ici
   pop();
 }
 
@@ -875,11 +886,13 @@ function displayScore() {
   // Affichage du score
   // TODO: à améliorer
   push();
-  fill(135, 205, 255);
+  imageMode(CENTER)
+  fill(0);
   textAlign(LEFT);
-  textSize(20);
+  textSize(32);
   textStyle(BOLD);
-  text("score :", scoreX, scoreY);
-  text(score, scoreX + 80, scoreY + 1);
+//  text("score :", scoreX, scoreY);     
+  text(score, scoreX + 60, scoreY + 9);
+  image(txtscore,scoreX, scoreY,100,40) // img final ici
   pop();
 }
