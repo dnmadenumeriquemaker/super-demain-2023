@@ -1,5 +1,5 @@
 let DEBUG = true;
-let ENABLE_ARDUINO = false;
+let ENABLE_ARDUINO = true;
 let IS_ARDUINO_OK = false;
 
 // Controle viseur : ZQSD,8426, fleches directionelles;
@@ -142,13 +142,13 @@ function preload() {
   txtInstructions = loadImage("Etape2.png")
   feedbackButtonOK = loadImage("mechano.png")
   txt2 = loadImage("fond.png")
- // scoreImg =loadImage("score")
-  
+  // scoreImg =loadImage("score")
+
   txtscore = loadImage("Score.png")
   txtPerdu = loadImage("Perdu.png")
   txtPerduScore = loadImage("PerduVotreScore.png")
-  
-  
+
+
   viseurNeutral = loadImage("viseur_blanc.png")
   viseurs.green = loadImage("viseur_vert.png")
   viseurs.red = loadImage("viseur_rouge.png")
@@ -184,17 +184,33 @@ function setup() {
   ay = by = cy = viseurY = height / 2;
 
   // Coordonnées du score
-  scoreX = width /2;
+  scoreX = width / 2;
   scoreY = 30;
 
   // Initier la communication avec Arduino
   if (ENABLE_ARDUINO) {
     port = createSerial();
 
+
     let usedPorts = usedSerialPorts();
+
+
     if (usedPorts.length > 0) {
+      console.log(usedPorts);
       port.open(usedPorts[0], 9600);
+    } else {
+      connectBtn = createButton('Connect to Arduino');
+      connectBtn.position(80, 200);
+      connectBtn.mousePressed(connectBtnClick);
     }
+  }
+}
+
+function connectBtnClick() {
+  if (!port.opened()) {
+    port.open('Arduino', 9600);
+  } else {
+    port.close();
   }
 }
 
@@ -305,7 +321,7 @@ function draw() {
     //imgfond(width/2,height/2)
     fill(255);
     noStroke()
-    image(txtWaitScreen, width / 2, height / 2, width , height )
+    image(txtWaitScreen, width / 2, height / 2, width, height)
 
     initGame();
 
@@ -357,7 +373,7 @@ function draw() {
    * */
 
   else if (screen == 1) {
-    image(txtInstructions, width / 2, height / 2 , width, height)
+    image(txtInstructions, width / 2, height / 2, width, height)
 
     /*
      Coordonnez-vous bien pour le diriger
@@ -504,7 +520,7 @@ function draw() {
           size: bulletSize,
           angle: bulletAngle,
           type: bulletType,
-          
+
         };
 
         // On l'ajoute aux boulets de canon
@@ -513,7 +529,7 @@ function draw() {
         // On réinitialise le délai avec le prochain tir
         lastBulletTime = millis();
 
-     //   playAudio('tir');
+        //   playAudio('tir');
       }
     }
 
@@ -609,12 +625,12 @@ function draw() {
     fill(0);
     textAlign(CENTER);
     textSize(45);
-   // text("vous avez perdu.", width / 2, height / 2 - 20);
-    image(txtPerdu,width/2 ,height/2,800,450)
-    image(txtPerduScore,width/2 -40,height/2 +80,200,80)
-    text(score, scoreX + 80, height/2+100 );
-    
-    setTimeout(function(){
+    // text("vous avez perdu.", width / 2, height / 2 - 20);
+    image(txtPerdu, width / 2, height / 2, 800, 450)
+    image(txtPerduScore, width / 2 - 40, height / 2 + 80, 200, 80)
+    text(score, scoreX + 80, height / 2 + 100);
+
+    setTimeout(function () {
       setScreen(0);
     }, 15000); // Temps de l'écran de défaite
   }
@@ -792,7 +808,7 @@ function initGame() {
 function hasScored() {
   score += 1;
 
- // playAudio('explosion');
+  // playAudio('explosion');
 
   // Force la génération du prochain ennemi (évite les temps morts)
   lastEnemyGeneratedTime = false;
@@ -864,7 +880,7 @@ function moveBulletAndCheckCollisions(bullet) {
 function displayBullet(bullet) {
   fill(255, 0, 255);
   ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
-  image(boulet,bullet.x, bullet.y, bullet.size, bullet.size)
+  image(boulet, bullet.x, bullet.y, bullet.size, bullet.size)
 }
 
 function updateCanon() {
@@ -878,7 +894,7 @@ function displayCanon() {
   fill(255, 0, 0);
   rectMode(CENTER);
   rect(0, 0, canonSize, canonSize);
-  image(txt0,30,0,canonSize*2,canonSize) // img final ici
+  image(txt0, 30, 0, canonSize * 2, canonSize) // img final ici
   pop();
 }
 
@@ -891,8 +907,8 @@ function displayScore() {
   textAlign(LEFT);
   textSize(32);
   textStyle(BOLD);
-//  text("score :", scoreX, scoreY);     
+  //  text("score :", scoreX, scoreY);     
   text(score, scoreX + 60, scoreY + 9);
-  image(txtscore,scoreX, scoreY,100,40) // img final ici
+  image(txtscore, scoreX, scoreY, 100, 40) // img final ici
   pop();
 }
