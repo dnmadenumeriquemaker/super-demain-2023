@@ -12,7 +12,7 @@ let screen = null;
 let canonX;
 let canonSize = 50;
 
-let viseurAngle = 0;
+let viseurAngle = 90;
 let viseurSize = 20;
 let ax, ay, bx, by, cx, cy;
 
@@ -123,9 +123,6 @@ let controllers = {
 let layerGameBackground;
 
 function preload() {
-  // song = loadSound("");
-  // explosion = loadSound ("explosion.mp3")
-  // tir = loadSound("tir.mp3")
   gameBackground = loadImage("fond.png")//images temporaires 
   viseur = loadImage("viseur.png")
   avL = loadImage("avion L.png")
@@ -140,15 +137,17 @@ function preload() {
   txt0 = loadImage("mechano.png")
   txtWaitScreen = loadImage("Etape1.png")
   txtInstructions = loadImage("Etape2.png")
-  feedbackButtonOK = loadImage("mechano.png")
+  feedbackButtonOK = loadImage("PretRouge.png")
+  feedbackButtonOKJ = loadImage("PretJaune.png")
+  feedbackButtonOKV = loadImage("PretVert.png")
   txt2 = loadImage("fond.png")
   // scoreImg =loadImage("score")
 
   txtscore = loadImage("Score.png")
-  txtPerdu = loadImage("Perdu.png")
+  //txtPerdu = loadImage("Perdu.png")
   txtPerduScore = loadImage("PerduVotreScore.png")
-
-
+  canon = loadImage("canon.png")
+  
   viseurNeutral = loadImage("viseur_blanc.png")
   viseurs.green = loadImage("viseur_vert.png")
   viseurs.red = loadImage("viseur_rouge.png")
@@ -168,11 +167,19 @@ function preload() {
   // Chargement de tous les sons
   audiosList.forEach(audioName => {
     audios[audioName] = document.getElementById(audioName);
+
+    if (audioName == 'musique') {
+      audios[audioName].volume = 0.3;
+    }
   });
+
 }
 
 function setup() {
   createCanvas(1280, 720);
+  textFont("Courier New");
+  textStyle(BOLD);
+  textSize(28);
 
   layerGameBackground = createGraphics(width, height);
   layerGameBackground.noStroke();
@@ -204,6 +211,7 @@ function setup() {
       connectBtn.mousePressed(connectBtnClick);
     }
   }
+
 }
 
 function connectBtnClick() {
@@ -212,6 +220,7 @@ function connectBtnClick() {
   } else {
     port.close();
   }
+
 }
 
 
@@ -330,30 +339,30 @@ function draw() {
     if (playerButtonIsPressed('green')) {
       push()
       fill(0, 255, 0)
-      circle(width / 2 - 100, height / 1.3, 50)
+      //circle(width / 2 - 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 - 100, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2 - 100, height / 1.3 + 40, 50, 20)
+     // text("prêt", width / 2 - 100, height / 1.3 + 50)
+      image(feedbackButtonOKV, width / 2 - 100, height / 1.3 + 40, 80, 80)
     }
 
     // Feedback du bouton pressé pour le joueur rouge
     if (playerButtonIsPressed('red')) {
       push()
       fill(255, 0, 0)
-      circle(width / 2, height / 1.3, 50)
+      //circle(width / 2, height / 1.3, 50)
       pop()
-      text("prêt", width / 2, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 50, 20)
+      //text("prêt", width / 2, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 80, 80)
     }
 
     // Feedback du bouton pressé pour le joueur jaune
     if (playerButtonIsPressed('yellow')) {
       push()
       fill(255, 255, 0)
-      circle(width / 2 + 100, height / 1.3, 50)
+      //circle(width / 2 + 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 + 100, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2 + 100, height / 1.3 + 40, 50, 20)
+      //text("prêt", width / 2 + 100, height / 1.3 + 50)
+      image(feedbackButtonOKJ, width / 2 + 100, height / 1.3 + 40, 80, 80)
     }
 
     // Si tout le monde presse les boutons en même temps
@@ -385,30 +394,30 @@ function draw() {
     if (playerButtonIsPressed('green')) {
       push()
       fill(0, 255, 0)
-      circle(width / 2 - 100, height / 1.3, 50)
+      //circle(width / 2 - 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 - 100, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2 - 100, height / 1.3 + 40, 50, 20)
+      //text("prêt", width / 2 - 100, height / 1.3 + 50)
+      image(feedbackButtonOKV, width / 2 - 100, height / 1.3 + 40, 80, 80)
     }
 
     // Feedback du bouton pressé pour le joueur rouge
     if (playerButtonIsPressed('red')) {
       push()
       fill(255, 0, 0)
-      circle(width / 2, height / 1.3, 50)
+      //circle(width / 2, height / 1.3, 50)
       pop()
-      text("prêt", width / 2, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 50, 20)
+      //text("prêt", width / 2, height / 1.3 + 50)
+      image(feedbackButtonOK, width / 2, height / 1.3 + 40, 80, 80)
     }
 
     // Feedback du bouton pressé pour le joueur jaune
     if (playerButtonIsPressed('yellow')) {
       push()
       fill(255, 255, 0)
-      circle(width / 2 + 100, height / 1.3, 50)
+      //circle(width / 2 + 100, height / 1.3, 50)
       pop()
-      text("prêt", width / 2 + 100, height / 1.3 + 50)
-      image(feedbackButtonOK, width / 2 + 100, height / 1.3 + 40, 50, 20)
+      //text("prêt", width / 2 + 100, height / 1.3 + 50)
+      image(feedbackButtonOKJ, width / 2 + 100, height / 1.3 + 40, 80, 80)
     }
 
 
@@ -432,9 +441,7 @@ function draw() {
   else if (screen == 2) {
 
     viseurImage = viseurNeutral;
-
-    // Démarrer la musique
-    //playAudio('musique');                               //a réactiver//
+                      
 
     if (DEBUG) {
       fill(0)// Tracer les trois lignes horizontales
@@ -529,7 +536,7 @@ function draw() {
         // On réinitialise le délai avec le prochain tir
         lastBulletTime = millis();
 
-        //   playAudio('tir');
+        playAudio('tir');
       }
     }
 
@@ -573,7 +580,7 @@ function draw() {
         if (DEBUG) {
           fill(255, 255, 0, 120);
           stroke(0);
-          ellipse(enemy.x, enemy.y, enemy.size, enemy.size);
+          //ellipse(enemy.x, enemy.y, enemy.size, enemy.size);
         }
 
       } else {
@@ -620,19 +627,19 @@ function draw() {
    */
 
   else if (screen == 3) {
-    stopAudio('musique');
 
     fill(0);
-    textAlign(CENTER);
-    textSize(45);
-    // text("vous avez perdu.", width / 2, height / 2 - 20);
-    image(txtPerdu, width / 2, height / 2, 800, 450)
-    image(txtPerduScore, width / 2 - 40, height / 2 + 80, 200, 80)
-    text(score, scoreX + 80, height / 2 + 100);
+    textAlign(LEFT);
+    textSize(38);
 
-    setTimeout(function () {
+   // text("vous avez perdu.", width / 2, height / 2 - 20);
+   // image(txtPerdu,width/2 ,height/2,800,450)
+    image(txtPerduScore,width/2 ,height/2 ,width,height)
+    text(score, scoreX -120 , height/2 + 180 );
+    
+    setTimeout(function(){
       setScreen(0);
-    }, 15000); // Temps de l'écran de défaite
+    }, 3000); // Temps de l'écran de défaite
   }
 }
 
@@ -648,9 +655,9 @@ function playAudio(audio) {
 function stopAudio(audio) {
   if (!CAN_AUDIO) return;
 
-  if (audios["musique"]) {
-    audios["musique"].pause();
-    audios["musique"].currentTime = 0.00001;
+  if (audios[audio]) {
+    audios[audio].pause();
+    audios[audio].currentTime = 0.00001;
   }
 }
 
@@ -662,6 +669,16 @@ function stopAllAudios() {
 
 function setScreen(newScreen) {
   screen = newScreen;
+
+  if (screen == 1) {
+    
+    // Démarrer la musique
+    playAudio('musique');
+  }
+
+  if (screen == 3) {
+    stopAudio('musique');
+  }
 }
 
 function updateControllers(data) {
@@ -808,7 +825,7 @@ function initGame() {
 function hasScored() {
   score += 1;
 
-  // playAudio('explosion');
+  playAudio('explosion');
 
   // Force la génération du prochain ennemi (évite les temps morts)
   lastEnemyGeneratedTime = false;
@@ -879,8 +896,8 @@ function moveBulletAndCheckCollisions(bullet) {
 
 function displayBullet(bullet) {
   fill(255, 0, 255);
-  ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
-  image(boulet, bullet.x, bullet.y, bullet.size, bullet.size)
+ // ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
+  image(boulet,bullet.x, bullet.y, bullet.size, bullet.size)
 }
 
 function updateCanon() {
@@ -890,11 +907,12 @@ function updateCanon() {
 function displayCanon() {
   push();
   translate(canonX, height);
-  rotate(viseurAngle); // Utilise l'angle du carré
+  rotate(viseurAngle+radians(90)); // Utilise l'angle du carré
   fill(255, 0, 0);
-  rectMode(CENTER);
-  rect(0, 0, canonSize, canonSize);
-  image(txt0, 30, 0, canonSize * 2, canonSize) // img final ici
+  //rectMode(CENTER);
+  imageMode(CENTER)
+  //rect(0, 0, canonSize, canonSize);
+  image(canon,0,0,386/5,1041/5) // img final ici
   pop();
 }
 
@@ -904,11 +922,12 @@ function displayScore() {
   push();
   imageMode(CENTER)
   fill(0);
-  textAlign(LEFT);
-  textSize(32);
-  textStyle(BOLD);
-  //  text("score :", scoreX, scoreY);     
-  text(score, scoreX + 60, scoreY + 9);
-  image(txtscore, scoreX, scoreY, 100, 40) // img final ici
+  
+  textAlign(CENTER);
+  
+//  text("score :", scoreX, scoreY); 
+ // image(txtscore,scoreX, scoreY) // img final ici   
+  text("score: "+score, scoreX, scoreY + 9);
+ 
   pop();
 }
