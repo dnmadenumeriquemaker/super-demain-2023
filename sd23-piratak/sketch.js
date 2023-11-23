@@ -1,4 +1,4 @@
-let DEBUG = true;
+let DEBUG = false;
 let ENABLE_ARDUINO = true;
 let IS_ARDUINO_OK = false;
 
@@ -24,6 +24,8 @@ let scoreY;
 
 let viseurImage;
 let viseurs = {};
+
+let arduinoTick = 0;
 
 
 // Valeurs initialisées à chaque partie
@@ -147,7 +149,7 @@ function preload() {
   //txtPerdu = loadImage("Perdu.png")
   txtPerduScore = loadImage("PerduVotreScore.png")
   canon = loadImage("canon.png")
-  
+
   viseurNeutral = loadImage("viseur_blanc.png")
   viseurs.green = loadImage("viseur_vert.png")
   viseurs.red = loadImage("viseur_rouge.png")
@@ -198,14 +200,14 @@ function setup() {
   if (ENABLE_ARDUINO) {
     port = createSerial();
 
-
     let usedPorts = usedSerialPorts();
-
 
     if (usedPorts.length > 0) {
       console.log(usedPorts);
       port.open(usedPorts[0], 9600);
-    } else {
+    }
+
+    if (!port.opened()) {
       connectBtn = createButton('Connect to Arduino');
       connectBtn.position(80, 200);
       connectBtn.mousePressed(connectBtnClick);
@@ -220,15 +222,14 @@ function connectBtnClick() {
   } else {
     port.close();
   }
-
 }
 
 
 function draw() {
 
 
+  // Debug: simuler Arduino avec le clavier
   if (DEBUG) {
-    // Debug: simuler Arduino avec le clavier
     controllers['green'].button = keyIsDown(32);
     controllers['red'].button = keyIsDown(66);
     controllers['yellow'].button = keyIsDown(86);
@@ -247,6 +248,18 @@ function draw() {
     controllers['yellow'].joystick.right = keyIsDown(68);
     controllers['yellow'].joystick.down = keyIsDown(83);
     controllers['yellow'].joystick.left = keyIsDown(81);
+  }
+
+  if (IS_ARDUINO_OK) {
+    let str = port.readUntil("\n");
+    if (str.length > 0) {
+      arduinoTick++;
+      if (arduinoTick > 20) {
+        updateControllers(str);
+      }
+    }
+
+    connectBtn.hide();
   }
 
 
@@ -275,7 +288,8 @@ function draw() {
 
     pop();
     if ((!ENABLE_ARDUINO && (mouseIsPressed || keyIsPressed))
-      || (ENABLE_ARDUINO && IS_ARDUINO_OK)) {
+      || (ENABLE_ARDUINO && IS_ARDUINO_OK)
+      && CAN_AUDIO) {
       setScreen(0);
     }
 
@@ -293,6 +307,7 @@ function draw() {
     // Permet d'autoriser le son lorsque le dispositif est lancé
     if (mouseIsPressed && !CAN_AUDIO) {
       CAN_AUDIO = true;
+      setScreen(0);
     }
 
     return;
@@ -334,14 +349,13 @@ function draw() {
 
     initGame();
 
-
     // Feedback du bouton pressé pour le joueur vert
     if (playerButtonIsPressed('green')) {
       push()
       fill(0, 255, 0)
       //circle(width / 2 - 100, height / 1.3, 50)
       pop()
-     // text("prêt", width / 2 - 100, height / 1.3 + 50)
+      // text("prêt", width / 2 - 100, height / 1.3 + 50)
       image(feedbackButtonOKV, width / 2 - 100, height / 1.3 + 40, 80, 80)
     }
 
@@ -441,7 +455,7 @@ function draw() {
   else if (screen == 2) {
 
     viseurImage = viseurNeutral;
-                      
+
 
     if (DEBUG) {
       fill(0)// Tracer les trois lignes horizontales
@@ -471,14 +485,14 @@ function draw() {
       rect(0, horizon, width, ligneEau)
       pop()
       text("joueur rouge, tirez sur les enemies de la zone rouge !", width / 2, height / 2)
-
+ 
       push()
       fill(255, 255, 0, 180)
       rectMode(CORNER)
       rect(0, ligneEau, width, height + 20)
       pop()
       text("joueur jaune, tirez sur les enemies de la zone jaune !", width / 2, height / 1.25)
-
+ 
       pop()
     }
     */
@@ -632,12 +646,12 @@ function draw() {
     textAlign(LEFT);
     textSize(38);
 
-   // text("vous avez perdu.", width / 2, height / 2 - 20);
-   // image(txtPerdu,width/2 ,height/2,800,450)
-    image(txtPerduScore,width/2 ,height/2 ,width,height)
-    text(score, scoreX -120 , height/2 + 180 );
-    
-    setTimeout(function(){
+    // text("vous avez perdu.", width / 2, height / 2 - 20);
+    // image(txtPerdu,width/2 ,height/2,800,450)
+    image(txtPerduScore, width / 2, height / 2, width, height)
+    text(score, scoreX - 120, height / 2 + 180);
+
+    setTimeout(function () {
       setScreen(0);
     }, 3000); // Temps de l'écran de défaite
   }
@@ -671,7 +685,7 @@ function setScreen(newScreen) {
   screen = newScreen;
 
   if (screen == 1) {
-    
+
     // Démarrer la musique
     playAudio('musique');
   }
@@ -896,8 +910,8 @@ function moveBulletAndCheckCollisions(bullet) {
 
 function displayBullet(bullet) {
   fill(255, 0, 255);
- // ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
-  image(boulet,bullet.x, bullet.y, bullet.size, bullet.size)
+  // ellipse(bullet.x, bullet.y, bullet.size, bullet.size);
+  image(boulet, bullet.x, bullet.y, bullet.size, bullet.size)
 }
 
 function updateCanon() {
@@ -907,12 +921,12 @@ function updateCanon() {
 function displayCanon() {
   push();
   translate(canonX, height);
-  rotate(viseurAngle+radians(90)); // Utilise l'angle du carré
+  rotate(viseurAngle + radians(90)); // Utilise l'angle du carré
   fill(255, 0, 0);
   //rectMode(CENTER);
   imageMode(CENTER)
   //rect(0, 0, canonSize, canonSize);
-  image(canon,0,0,386/5,1041/5) // img final ici
+  image(canon, 0, 0, 386 / 5, 1041 / 5) // img final ici
   pop();
 }
 
@@ -922,12 +936,12 @@ function displayScore() {
   push();
   imageMode(CENTER)
   fill(0);
-  
+
   textAlign(CENTER);
-  
-//  text("score :", scoreX, scoreY); 
- // image(txtscore,scoreX, scoreY) // img final ici   
-  text("score: "+score, scoreX, scoreY + 9);
- 
+
+  //  text("score :", scoreX, scoreY); 
+  // image(txtscore,scoreX, scoreY) // img final ici   
+  text("score: " + score, scoreX, scoreY + 9);
+
   pop();
 }

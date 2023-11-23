@@ -58,40 +58,26 @@ void setup() {
 
 void loop() {
 
-  int j01hVal = digitalRead(j01h);
-  int j01bVal = digitalRead(j01b);
-  int j01gVal = digitalRead(j01g);
-  int j01dVal = digitalRead(j01d);
+  int j01hVal = !digitalRead(j01h);
+  int j01bVal = !digitalRead(j01b);
+  int j01gVal = !digitalRead(j01g);
+  int j01dVal = !digitalRead(j01d);
 
-  int j02hVal = digitalRead(j02h);
-  int j02bVal = digitalRead(j02b);
-  int j02gVal = digitalRead(j02g);
-  int j02dVal = digitalRead(j02d);
+  int j02hVal = !digitalRead(j02h);
+  int j02bVal = !digitalRead(j02b);
+  int j02gVal = !digitalRead(j02g);
+  int j02dVal = !digitalRead(j02d);
 
-  int j03hVal = digitalRead(j03h);
-  int j03bVal = digitalRead(j03b);
-  int j03gVal = digitalRead(j03g);
-  int j03dVal = digitalRead(j03d);
+  int j03hVal = !digitalRead(j03h);
+  int j03bVal = !digitalRead(j03b);
+  int j03gVal = !digitalRead(j03g);
+  int j03dVal = !digitalRead(j03d);
 
-  int b01Val = digitalRead (b01);
-  int b02Val = digitalRead (b02);
-  int b03Val = digitalRead (b03);
+  int b01Val = !digitalRead (b01);
+  int b02Val = !digitalRead (b02);
+  int b03Val = !digitalRead (b03);
 
   String newData = "";
-
-  newData.concat(j01hVal);
-  newData.concat(j01dVal);
-  newData.concat(j01bVal);
-  newData.concat(j01gVal);
-  newData.concat(b01Val);
-  newData.concat("/");
-
-  newData.concat(j02hVal);
-  newData.concat(j02dVal);
-  newData.concat(j02bVal);
-  newData.concat(j02gVal);
-  newData.concat(b02Val);
-  newData.concat("/");
 
   newData.concat(j03hVal);
   newData.concat(j03dVal);
@@ -99,7 +85,27 @@ void loop() {
   newData.concat(j03gVal);
   newData.concat(b03Val);
 
-  Serial.println(newData);
+  newData.concat("/");
+
+  newData.concat(j02hVal);
+  newData.concat(j02dVal);
+  newData.concat(j02bVal);
+  newData.concat(j02gVal);
+  newData.concat(b02Val);
+  
+  newData.concat("/");
+  
+  newData.concat(j01hVal);
+  newData.concat(j01dVal);
+  newData.concat(j01bVal);
+  newData.concat(j01gVal);
+  newData.concat(b01Val);
+
+  if (newData != data) {
+    Serial.println(newData);
+  }
+
+  data = newData;
   /*
     Serial.print(j01bVal);
     Serial.print(" ");
