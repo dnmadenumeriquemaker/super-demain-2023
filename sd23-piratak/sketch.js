@@ -123,9 +123,6 @@ let controllers = {
 let layerGameBackground;
 
 function preload() {
-  // song = loadSound("");
-  // explosion = loadSound ("explosion.mp3")
-  // tir = loadSound("tir.mp3")
   gameBackground = loadImage("fond.png")//images temporaires 
   viseur = loadImage("viseur.png")
   avL = loadImage("avion L.png")
@@ -168,7 +165,12 @@ function preload() {
   // Chargement de tous les sons
   audiosList.forEach(audioName => {
     audios[audioName] = document.getElementById(audioName);
+
+    if (audioName == 'musique') {
+      audios[audioName].volume = 0.2;
+    }
   });
+
 }
 
 function setup() {
@@ -416,9 +418,7 @@ function draw() {
   else if (screen == 2) {
 
     viseurImage = viseurNeutral;
-
-    // Démarrer la musique
-    //playAudio('musique');                               //a réactiver//
+                      
 
     if (DEBUG) {
       fill(0)// Tracer les trois lignes horizontales
@@ -513,7 +513,7 @@ function draw() {
         // On réinitialise le délai avec le prochain tir
         lastBulletTime = millis();
 
-     //   playAudio('tir');
+        playAudio('tir');
       }
     }
 
@@ -604,7 +604,6 @@ function draw() {
    */
 
   else if (screen == 3) {
-    stopAudio('musique');
 
     fill(0);
     textAlign(CENTER);
@@ -632,9 +631,9 @@ function playAudio(audio) {
 function stopAudio(audio) {
   if (!CAN_AUDIO) return;
 
-  if (audios["musique"]) {
-    audios["musique"].pause();
-    audios["musique"].currentTime = 0.00001;
+  if (audios[audio]) {
+    audios[audio].pause();
+    audios[audio].currentTime = 0.00001;
   }
 }
 
@@ -646,6 +645,16 @@ function stopAllAudios() {
 
 function setScreen(newScreen) {
   screen = newScreen;
+
+  if (screen == 1) {
+    
+    // Démarrer la musique
+    playAudio('musique');
+  }
+
+  if (screen == 3) {
+    stopAudio('musique');
+  }
 }
 
 function updateControllers(data) {
@@ -792,7 +801,7 @@ function initGame() {
 function hasScored() {
   score += 1;
 
- // playAudio('explosion');
+  playAudio('explosion');
 
   // Force la génération du prochain ennemi (évite les temps morts)
   lastEnemyGeneratedTime = false;
