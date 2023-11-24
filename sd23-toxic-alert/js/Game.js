@@ -828,6 +828,9 @@ function initGame() {
   jaugeSpeed = jaugeSpeedStart;
   gameDuration = 0;
   durationRound = 0;
+  durationRoundMax = 6 * 1000; // 6 secondes
+
+
 
   let buttonPlayers = new Array(24).fill(0);
   buttonPlayers[startButton1] = 2;
