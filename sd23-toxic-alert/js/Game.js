@@ -602,9 +602,17 @@ function setStep(newStep) {
 
     playAudio('wait_loop');
     timerWait = setInterval(function () {
-      let timerWaitJaugeLevel = new Array(24).fill(0);
-      
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      timerWaitJaugeLevel =  Math.round(40 + cos(frameCount / 40) * 10) - 13;
+
+      let timerWaitLeds = new Array(54).fill(0).map((value, index) => {
+        if (index > timerWaitJaugeLevel) {
+          return 0;
+        } else {
+          return 1;
+        }
+      }).join('');
+
+      port.write("s/"+timerWaitLeds+"\n");
     }, 100);
   } else {
     stopAudio('wait_loop');
@@ -726,11 +734,11 @@ function setStep(newStep) {
       }
 
 
-      setTimeout(function () {
+      // setTimeout(function () {
 
-        port.write("l/000000000000000000000000\n");
+      //   port.write("l/000000000000000000000000\n");
 
-      }, 24 * 10 * 50);
+      // }, 24 * 10 * 50);
 
 
       // version 1 face à la fois
