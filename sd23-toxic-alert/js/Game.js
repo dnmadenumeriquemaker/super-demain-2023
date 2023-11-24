@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const ENABLE_ARDUINO = true;
+const ENABLE_ARDUINO = false;
 const NB_LEDS_JAUGE = 54;
 
 let IS_ARDUINO_OK = false;
@@ -47,7 +47,7 @@ let fakeButtons = [];
 let timerRound = null;
 let intervalTickRound = 100; // tick every 100ms
 let durationRound = 0;
-let durationRoundMax = 6 * 1000; // 6 secondes
+let durationRoundMax; // 6 secondes
 
 let currentButtonLetterToPress = null;
 
@@ -386,12 +386,12 @@ function keyPressed() {
     setStep(STEP_END);
   }
 
-  // if (key == "q") {
-  //   let dev_startButtonsBeingPressed = new Array(24).fill(0);
-  //   dev_startButtonsBeingPressed[startButton1] = 1;
-  //   dev_startButtonsBeingPressed[startButton2] = 1;
-  //   arduino_gotButtons(dev_startButtonsBeingPressed.join(''));
-  // }
+  if (key == "q") {
+    let dev_startButtonsBeingPressed = new Array(24).fill(0);
+    dev_startButtonsBeingPressed[activeButtons[0]] = 1;
+    dev_startButtonsBeingPressed[activeButtons[1]] = 1;
+    arduino_gotButtons(dev_startButtonsBeingPressed.join(''));
+  }
   if (key == "s") {
     newRound();
   }
@@ -423,7 +423,7 @@ function shareWithArduino() {
 
   if (ENABLE_ARDUINO) {
     console.log('Light sent', lightStatesToArduino);
-    port.write("l/" + lightStatesToArduino + "\n");
+    arduino_write("l/" + lightStatesToArduino + "\n");
   }
 }
 
@@ -452,28 +452,28 @@ function arduino_gotButtons(buttonsStatesRaw) {
       * Check for false pressed buttons
       */
 
-/*
-    pressedButtons.forEach((pressedButton) => {
-      if (!activeButtons.includes(pressedButton)) {
-        // is pressing fake button!
-        console.log('Mauvais bouton !');
-        setJaugeMalus();
-        playAudio('negative_feedback');
-
-        // store states
-        prevButtonsStates = buttonsStates;
-
-        // Change round
-        endRound();
-      }
-    });
-    */
+    /*
+        pressedButtons.forEach((pressedButton) => {
+          if (!activeButtons.includes(pressedButton)) {
+            // is pressing fake button!
+            console.log('Mauvais bouton !');
+            setJaugeMalus();
+            playAudio('negative_feedback');
+    
+            // store states
+            prevButtonsStates = buttonsStates;
+    
+            // Change round
+            endRound();
+          }
+        });
+        */
 
     /*
      * Check for fake buttons
      */
 
-    
+
     fakeButtons.forEach((fakeButton) => {
       if (pressedButtons.includes(fakeButton)) {
         // is pressing fake button!
@@ -488,7 +488,7 @@ function arduino_gotButtons(buttonsStatesRaw) {
         endRound();
       }
     });
-    
+
 
 
 
@@ -602,9 +602,9 @@ function setStep(newStep) {
     initGame();
 
     playAudio('wait_loop');
+
     timerWait = setInterval(function () {
-      console.log('timerWait');
-      timerWaitJaugeLevel =  Math.round(40 + cos(frameCount / 40) * 10) - 13;
+      timerWaitJaugeLevel = Math.round(40 + cos(frameCount / 40) * 10) - 13;
 
       let timerWaitLeds = new Array(54).fill(0).map((value, index) => {
         if (index > timerWaitJaugeLevel) {
@@ -613,9 +613,8 @@ function setStep(newStep) {
           return 1;
         }
       }).join('');
-      console.log(timerWaitLeds);
 
-      port.write("s/"+timerWaitLeds+"\n");
+      arduino_write("s/" + timerWaitLeds + "\n");
     }, 100);
   } else {
     stopAudio('wait_loop');
@@ -630,94 +629,94 @@ function setStep(newStep) {
 
     const blinkDuration = 320;
 
-    //port.write("l/000000000000000000000000\n");
-    // port.write("l/111111111111111111111111\n");
-    port.write("l/000000000000000000000000\n");
-    port.write("s/000000000000000000000000000000000000000000000000000000\n");
+    // blink animation for rules
+    arduino_write("l/000000000000000000000000\n");
+
+    arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 2);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 3);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 4);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 5);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 6);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 7);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 8);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 9);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 10);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 11);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 12);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 13);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 14);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 15);
 
     setTimeout(function () {
-      port.write("l/111111111111111111111111\n");
-      port.write("s/111111111111111111111111111111111111111111111111111111\n");
+      arduino_write("l/111111111111111111111111\n");
+      arduino_write("s/111111111111111111111111111111111111111111111111111111\n");
     }, blinkDuration * 16);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
-      port.write("s/000000000000000000000000000000000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
+      arduino_write("s/000000000000000000000000000000000000000000000000000000\n");
     }, blinkDuration * 17);
 
     setTimeout(function () {
@@ -731,17 +730,15 @@ function setStep(newStep) {
 
         setTimeout(function () {
 
-          port.write("l/" + lightStatesGyro.join('') + "\n");
+          arduino_write("l/" + lightStatesGyro.join('') + "\n");
 
         }, i * 50);
       }
 
 
-      // setTimeout(function () {
-
-      //   port.write("l/000000000000000000000000\n");
-
-      // }, 24 * 10 * 50);
+      setTimeout(function () {
+        arduino_write("l/000000000000000000000000\n");
+      }, 11000);
 
 
       // version 1 face à la fois
@@ -757,7 +754,7 @@ function setStep(newStep) {
 
         setTimeout(function () {
 
-          port.write("l/" + lightStatesGyro.join('') + "\n");
+          arduino_write("l/" + lightStatesGyro.join('') + "\n");
 
         }, i * 150);
       }
@@ -777,6 +774,7 @@ function setStep(newStep) {
     }, 1000);
   } else {
     clearInterval(timerCountdown);
+    stopAudio('countdown');
   }
 
 
@@ -801,6 +799,9 @@ function setStep(newStep) {
     timerPlay = setInterval(function () {
       gameDuration++;
     }, 1000);
+  } else {
+    clearInterval(timerJaugeTick);
+    clearInterval(timerPlay);
   }
 
 
@@ -837,8 +838,8 @@ function initGame() {
   buttonPlayers[startButton2] = 2;
 
   // switch on players buttons
-  port.write("l/" + buttonPlayers.join('') + "\n");
-  port.write("j/0\n");
+  arduino_write("l/" + buttonPlayers.join('') + "\n");
+  arduino_write("j/0\n");
 }
 
 
@@ -847,6 +848,7 @@ function initGame() {
 
 function newRound() {
   console.log('Nouveau round');
+
   clearFakeButtons();
   setNewActiveButtons();
   setNewFakeButtons();
@@ -995,11 +997,15 @@ function setJaugeBonus() {
   playAudio('jauge_bonus');
 
   // increase jauge speed
-  jaugeSpeed -= 100;
-  jaugeSpeed = min(jaugeSpeed, jaugeSpeedMax);
+  // jaugeSpeed -= 100;
+  // jaugeSpeed = max(jaugeSpeed, jaugeSpeedMax);
 
   // decrease button duration to press them
   durationRoundMax -= 200;
+  durationRoundMax = max(durationRoundMax, 1000);
+
+  console.log('jaugeSpeed', jaugeSpeed);
+  console.log('durationRoundMax', durationRoundMax);
 }
 
 
@@ -1008,7 +1014,7 @@ function checkJauge(cb = function () { }) {
 
   if (ENABLE_ARDUINO) {
     console.log('Jauge envoyée à Arduino');
-    port.write("j/" + jauge + "\n");
+    arduino_write("j/" + jauge + "\n");
   }
 
   // console.warn('Jauge : ' + jauge);
@@ -1036,12 +1042,12 @@ function endGame() {
   playAudio('end_ia');
 
   console.log('Jauge explosion envoyée à Arduino');
-  //port.write("j/e\n"); // jauge/end
+  //arduino_write("j/e\n"); // jauge/end
 
   // animation jauge end
   for (let i = 0; i < 54; i++) {
     setTimeout(function () {
-      port.write("e/" + (53 - i) + "\n"); // jauge/end
+      arduino_write("e/" + (53 - i) + "\n"); // jauge/end
     }, i * 50);
   }
 
@@ -1059,11 +1065,11 @@ function endGame() {
         }
       }).join('');
 
-      port.write("l/" + randomLeds + "\n");
+      arduino_write("l/" + randomLeds + "\n");
     }, i * blinkDuration);
 
     setTimeout(function () {
-      port.write("l/000000000000000000000000\n");
+      arduino_write("l/000000000000000000000000\n");
     }, nbBlinks * blinkDuration);
   }
 }
@@ -1107,5 +1113,11 @@ function debug(message, style = null) {
     console.log('%c' + message, colors[style]);
   } else {
     console.log(message);
+  }
+}
+
+function arduino_write(s) {
+  if (ENABLE_ARDUINO) {
+    port.write(s);
   }
 }
