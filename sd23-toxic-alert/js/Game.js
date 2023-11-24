@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const ENABLE_ARDUINO = false;
+const ENABLE_ARDUINO = true;
 const NB_LEDS_JAUGE = 54;
 
 let IS_ARDUINO_OK = false;
