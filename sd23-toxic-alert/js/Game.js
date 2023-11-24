@@ -602,6 +602,7 @@ function setStep(newStep) {
 
     playAudio('wait_loop');
     timerWait = setInterval(function () {
+      console.log('timerWait');
       timerWaitJaugeLevel =  Math.round(40 + cos(frameCount / 40) * 10) - 13;
 
       let timerWaitLeds = new Array(54).fill(0).map((value, index) => {
@@ -611,6 +612,7 @@ function setStep(newStep) {
           return 1;
         }
       }).join('');
+      console.log(timerWaitLeds);
 
       port.write("s/"+timerWaitLeds+"\n");
     }, 100);
@@ -1000,7 +1002,6 @@ function setJaugeBonus() {
 function checkJauge(cb = function () { }) {
   jauge = max(jauge, 0); // on évite le jauge négatif
 
-  // TODO: send jauge to Arduino
   if (ENABLE_ARDUINO) {
     console.log('Jauge envoyée à Arduino');
     port.write("j/" + jauge + "\n");
