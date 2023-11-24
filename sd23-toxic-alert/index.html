@@ -2,8 +2,6 @@
 <html lang="en">
 
 <head>
-  <script src="p5.js"></script>
-  <script src="p5.web-serial.js"></script>
   <link
     rel="stylesheet"
     type="text/css"
@@ -22,6 +20,11 @@
     preload="true"
     src="./assets/wait_loop.mp3"
     loop
+  ></audio>
+  <audio
+    id="countdown"
+    preload="true"
+    src="./assets/countdown.mp3"
   ></audio>
   <audio
     id="button_pressed"
@@ -65,18 +68,15 @@
     src="./assets/end.mp3"
   ></audio>
   <audio
-    id="end"
+    id="end_ia"
     preload="true"
-    src="./assets/end_loop.mp3"
-    loop
+    src="./assets/end_ia.mp3"
   ></audio>
 
-  <script src="js/Player.js"></script>
-  <script src="js/Item.js"></script>
-  <script src="js/Asteroid.js"></script>
-  <script src="js/Spaceship.js"></script>
+  <script src="p5.js"></script>
+  <script src="p5.web-serial.js"></script>
+
   <script src="js/Game.js"></script>
-  <script src="js/Step.js"></script>
 </body>
 
 </html>

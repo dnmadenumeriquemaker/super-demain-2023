@@ -213,7 +213,6 @@ function setup() {
       connectBtn.mousePressed(connectBtnClick);
     }
   }
-
 }
 
 function connectBtnClick() {
