@@ -452,7 +452,7 @@ function arduino_gotButtons(buttonsStatesRaw) {
       * Check for false pressed buttons
       */
 
-
+/*
     pressedButtons.forEach((pressedButton) => {
       if (!activeButtons.includes(pressedButton)) {
         // is pressing fake button!
@@ -467,12 +467,13 @@ function arduino_gotButtons(buttonsStatesRaw) {
         endRound();
       }
     });
+    */
 
     /*
      * Check for fake buttons
      */
 
-    /*
+    
     fakeButtons.forEach((fakeButton) => {
       if (pressedButtons.includes(fakeButton)) {
         // is pressing fake button!
@@ -487,7 +488,7 @@ function arduino_gotButtons(buttonsStatesRaw) {
         endRound();
       }
     });
-    */
+    
 
 
 
