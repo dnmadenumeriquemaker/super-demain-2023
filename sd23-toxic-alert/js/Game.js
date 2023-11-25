@@ -58,6 +58,9 @@ let prevButtonsStates = new Array(24).fill(0);
 let startButton1 = 4;
 let startButton2 = 17;
 
+let hasAtLeastOneButtonPressed = false;
+let waitForAllButtonsToBeReleased = false;
+
 const dashboardsLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 const dashboards = {
@@ -431,6 +434,7 @@ function arduino_gotButtons(buttonsStatesRaw) {
   if (step != STEP_PLAY && step != STEP_WAIT) return;
 
 
+
   // get pressed buttons
   let buttonsStates = buttonsStatesRaw.split('');
 
@@ -444,6 +448,19 @@ function arduino_gotButtons(buttonsStatesRaw) {
   debug('Boutons pressés : ' + pressedButtons);
   debug('Boutons actifs : ' + activeButtons);
 
+  console.log(pressedButtons.length == 0);
+
+  if (pressedButtons.length == 0) {
+    hasAtLeastOneButtonPressed = false;
+    waitForAllButtonsToBeReleased = false;
+    console.log('released');
+  } else {
+    hasAtLeastOneButtonPressed = true;
+  }
+
+  if (step == STEP_PLAY && waitForAllButtonsToBeReleased == true) {
+    return;
+  }
 
 
   if (step == STEP_PLAY) {
@@ -474,6 +491,8 @@ function arduino_gotButtons(buttonsStatesRaw) {
      */
 
 
+    /*
+
     fakeButtons.forEach((fakeButton) => {
       if (pressedButtons.includes(fakeButton)) {
         // is pressing fake button!
@@ -489,6 +508,7 @@ function arduino_gotButtons(buttonsStatesRaw) {
       }
     });
 
+    */
 
 
 
@@ -722,7 +742,7 @@ function setStep(newStep) {
     setTimeout(function () {
       // version 1 led à la fois
 
-      for (let i = 0; i < 24 * 9; i++) {
+      for (let i = 0; i < 24 * 6; i++) {
         let lightStatesGyro = new Array(24).fill(0);
         let ledIndex = i % 24;
 
@@ -738,7 +758,7 @@ function setStep(newStep) {
 
       setTimeout(function () {
         arduino_write("l/000000000000000000000000\n");
-      }, 11000);
+      }, 7400);
 
 
       // version 1 face à la fois
@@ -762,7 +782,7 @@ function setStep(newStep) {
 
     }, blinkDuration * 18);
 
-    countdown = 17;
+    countdown = 14;
 
     clearInterval(timerCountdown);
     timerCountdown = setInterval(function () {
@@ -830,6 +850,7 @@ function initGame() {
   gameDuration = 0;
   durationRound = 0;
   durationRoundMax = 6 * 1000; // 6 secondes
+  jaugeMalus = 5;
 
 
 
@@ -875,6 +896,9 @@ function newRound() {
 function endRound() {
   console.log('Fin du round');
   clearInterval(timerRound);
+
+  waitForAllButtonsToBeReleased = true;
+  
 
   console.log('Jauge fin du round');
   checkJauge(function () {
@@ -996,12 +1020,14 @@ function setJaugeBonus() {
   jauge -= jaugeBonus;
   playAudio('jauge_bonus');
 
+  jaugeMalus += 1;
+
   // increase jauge speed
-  // jaugeSpeed -= 100;
-  // jaugeSpeed = max(jaugeSpeed, jaugeSpeedMax);
+  jaugeSpeed -= 150;
+  jaugeSpeed = max(jaugeSpeed, jaugeSpeedMax);
 
   // decrease button duration to press them
-  durationRoundMax -= 200;
+  durationRoundMax -= 100;
   durationRoundMax = max(durationRoundMax, 1000);
 
   console.log('jaugeSpeed', jaugeSpeed);
